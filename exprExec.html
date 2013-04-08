@@ -1,0 +1,737 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.form.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.treeview.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.alphanumeric.pack.js"></script>
+	<style type='text/css'>
+		#parOpt, #optimization { padding: 0; margin: 0; list-style: none; }
+		#parOpt .hover { color: red; cursor: pointer; }
+		#parOpt span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#parOpt li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#parOpt, #optimization { padding: 0; margin: 0; list-style: none; }
+		
+		#perParCont { border:1px solid black; box-shadow:0px 0px 15px #999; position:absolute; display:none; background-color:#FFFFFF; }
+
+		#perVis, #visualization { padding: 0; margin: 0; list-style: none; }
+		#perVis .hover { color: red; cursor: pointer; }
+		#perVis span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#perVis li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#perVis, #visualization { padding: 0; margin: 0; list-style: none; }
+		
+		#intEst, #detection { padding: 0; margin: 0; list-style: none; }
+		#intEst .hover { color: red; cursor: pointer; }
+		#intEst span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#intEst li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#intEst, #detection { padding: 0; margin: 0; list-style: none; }
+	</style>
+	<script type="text/javascript">
+
+	var strExprDscr;	var strExprDscrArranged;
+	
+	$(document).ready(function()
+	{
+		$(this).find('#loadForm').ajaxForm
+		({
+			dataType: "xml",
+			success: loadConfig
+		});
+	});
+
+	// This function is called when the experiment configuration and/or package has been loaded
+	function loadConfig(objExprDscr)
+	{
+		strXML="";	strExprDscr = objToStrXML($(objExprDscr).find("propertyDef"));
+		$(document).find("#exprDesrStatus").html("<b>Loaded</b>");
+		if($(document).find("#loadPackage").val().split('\\').pop() == "")
+			$(document).find("#packageStatus").html("");
+		else
+			$(document).find("#packageStatus").html("<b>Loaded</b>");
+
+		$(document).off();			// remove all event bindings on this document
+		$(document).on('click', fadeOut);	// except the fadeOut binding
+
+		displayParOpt(strExprDscr);
+		displayPerVis(strExprDscr);
+		displayIntEst();
+		displayStartExpr();
+	}
+	
+	// function is called everytime for a mouse click event and used to fade-out popped out boxes in an interactive fashion
+	function fadeOut(event)
+	{
+		if($(event.target).parent().attr('id') == "showPerPar")
+		{
+		    	var selectedSpanID = $(event.target).closest('span').attr('id');
+		    	$(document).find('#parOptCont').find('span').each(function()
+		    	{
+		    		if($(this)[0].id != "newPerPar" && $(this)[0].id != selectedSpanID)
+				    	$(this).find('#perParCont').fadeOut("fast");
+		    	});
+		}
+		else
+		{
+    	
+			if($(event.target).closest('span').length == 0)
+			{
+			    	$(document).find('#parOptCont').find('span').each(function()
+			    	{
+			    		if($(this)[0].id != "newPerPar")
+					    	$(this).find('#perParCont').fadeOut("fast");
+			    	});
+			}
+		}
+	}
+
+	function displayParOpt(strExprDscr)
+	{
+		var parOptContText = "<ul id='parOpt'><li class='closed'><span class='folder'><b>Parameter Optimization Section</b></span><select id='parOptType'><option value='null'>Select Optimizer</option><option value='SSRuC'>SSRuC</option><option value='IVuC'>IVuC</option></select><ul id='optimization'><li></li></ul></li></ul>";
+		$(document).find('#parOptCont').html(parOptContText);
+		$(document).find("#parOptCont").css("border","1px solid black");
+		$(document).find("#parOpt").treeview();
+
+		$(document).on('change','#parOptType',function()
+		{
+			var parOptType = $(document).find('#parOptType').val();
+
+			if(parOptType == 'null')
+				$(document).find('#optimization').html("");
+			else if(parOptType == 'SSRuC')	// SSRuC = Step Size Reduction until Condition
+			{
+				// unbind possible previously binded events
+				$(document).off('click','#addPerPar');
+				$(document).off('click','#delPerPar');
+
+				var objParText = "<table><tr>" + loadObjParMet(strExprDscr) + "</tr></table>";
+				var perParText = "<table><tr><td><span id='newPerPar'></td></tr><tr><td><table><tr><td><button id='addPerPar'><img src='figures/Add.png' title='add performance parameter' /></button><button id='delPerPar'><img src='figures/Delete.png' title='delete performance parameter' /></button><td></td><td><b>Optimization Context</b> <select id='perParContext'><option value='maximization'>Maximization</option><option value='minimization'>Minimization</option></select></td></tr></table></td></tr></table>";
+				var startEndStepSizeRateLimitText = "<table align='center'><tr><td><table><tr><td><b>Start</b></td><td><input type='text' id='startVal' size='7'></td><td><b>End</b></td><td><input type='text' id='endVal' size='7'></td><td><b>Step Size</b></td><td><input type='text' id='stepSize' size='7'></td></tr><tr><td colspan='3'><b>Step Size Reduction Rate</b></td><td><input type='text' id='stepSizeRedRate' size='7'></td><td><b>Step Size Limit</b></td><td><input type='text' id='stepSizeLimit' size='7'></td></tr></table></td></tr></table>";
+
+				$(document).find('#optimization').html("<table style='border:1px solid black;'><tr><td align='center'><b>Objective Parameter</b></td><td align='center'><b>Performance Parameter</b></td></tr><tr><td style='background-color:LightGray;'>" + objParText + "</td><td style='background-color:LightGray;'>" + perParText + "</td></tr><tr><td style='background-color:LightGray;' colspan='2'>" + startEndStepSizeRateLimitText + "</td></tr></table>");
+		
+				$(document).on('click','#addPerPar',addPerPar);
+				$(document).on('click','#delPerPar',delPerPar);
+
+				$(document).find("#parOpt").find("#startVal").numeric({allow:"-."});
+				$(document).find("#parOpt").find("#endVal").numeric({allow:"-."});
+				$(document).find("#parOpt").find("#stepSize").numeric({allow:"."});
+				$(document).find("#parOpt").find("#stepSizeRedRate").numeric({allow:"."});
+				$(document).find("#parOpt").find("#stepSizeLimit").numeric({allow:"."});
+			}
+			else if(parOptType == 'IVuC')	// IVuC = Increase Value until Condition
+			{
+				// unbind possible previously binded events
+				$(document).off('click','#addPerPar');
+				$(document).off('click','#delPerPar');
+
+				var objParText = "<table><tr>" + loadObjParMet(strExprDscr) + "</tr></table>";
+				var perParText = "<table><tr><td><span id='newPerPar'></td><td><select id='perParCondType'><option value='lessThan'><</option><option value='greaterThan'>></option></select></td><td><input type='text' size ='5' id='perParCondValue'></td></tr><tr><td colspan='3'><button id='addPerPar'><img src='figures/Add.png' title='add performance parameter' /></button><button id='delPerPar'><img src='figures/Delete.png' title='delete performance parameter' /></button></td></tr></table>";
+				var startEndStepSizeRateLimitText = "<table align='center'><tr><td><table><tr><td><b>Start</b></td><td><input type='text' id='startVal' size='7'></td><td><b>End</b></td><td><input type='text' id='endVal' size='7'></td><td><b>Step Size</b></td><td><input type='text' id='stepSize' size='7'></td></tr><tr><td colspan='3'><b>Step Size Reduction Rate</b></td><td><input type='text' id='stepSizeRedRate' size='7'></td><td><b>Step Size Limit</b></td><td><input type='text' id='stepSizeLimit' size='7'></td></tr></table></td></tr></table>";
+
+				$(document).find('#optimization').html("<table style='border:1px solid black;'><tr><td align='center'><b>Objective Parameter</b></td><td align='center'><b>Performance Parameter</b></td></tr><tr><td style='background-color:LightGray;'>" + objParText + "</td><td style='background-color:LightGray;'>" + perParText + "</td></tr><tr><td style='background-color:LightGray;' colspan='2'>" + startEndStepSizeRateLimitText + "</td></tr></table>");
+		
+				$(document).on('click','#addPerPar',addPerPar);
+				$(document).on('click','#delPerPar',delPerPar);
+
+				$(document).find("#parOpt").find("#perParCondValue").numeric({allow:"-."});
+				$(document).find("#parOpt").find("#startVal").numeric({allow:"-."});
+				$(document).find("#parOpt").find("#endVal").numeric({allow:"-."});
+				$(document).find("#parOpt").find("#stepSize").numeric({allow:"."});
+				$(document).find("#parOpt").find("#stepSizeRedRate").numeric({allow:"."});
+				$(document).find("#parOpt").find("#stepSizeLimit").numeric({allow:"."});
+			}
+		});
+	}
+
+	function loadObjParMet(strExprDscr)
+	{
+		var objParMetList = "<td><b>Tune</b></td><td valign='bottom'><select id='objParMetName'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("searchPar").each(function()
+		{
+			objParMetList = objParMetList + "<option value='" + $(this).attr("name") + "'>" + $(this).attr("name") + "</option>";
+		});
+		objParMetList = objParMetList + "</select></td>";
+
+		return objParMetList;
+	}
+
+	function addPerPar(event)
+	{
+		if($(document).find('#newPerPar').closest('table').find('span').first().attr('id') == "newPerPar")
+		{
+			spanID=randomString();
+			$(document).find('#newPerPar').attr('id',spanID);
+			spanIDObj = $('#'+spanID).closest('span');
+			$('<span id="newPerPar"></td>').insertAfter($(spanIDObj));
+			$(spanIDObj).html("<button id='showPerPar'><img src='figures/expand.png' title='click to expand performance parameter' /></button><div id='perParCont'><table><tr id='perParGroupConfig'></tr><tr id='perParAppConfig'><tr id='perParMPConfig'></tr><tr id='perParMetConfig'></tr><tr id='perParRulerConfig'></tr><tr id='perParOperConfig'></tr></table></div>");
+		}
+		else
+		{
+			spanID=randomString();
+			$(document).find('#newPerPar').attr('id',spanID);
+			spanIDObj = $('#'+spanID).closest('span');
+			$('<span id="newPerPar"></td>').insertAfter($(spanIDObj));
+			$(spanIDObj).html("<select id='operators'><option value='add'>+</option><option value='sub'>-</option><option value='mul'>*</option><option value='div'>/</option><option value='mod'>%</option></select><button id='showPerPar'><img src='figures/expand.png' title='click to expand performance parameter' /></button><div id='perParCont'><table><tr id='perParGroupConfig'></tr><tr id='perParAppConfig'><tr id='perParMPConfig'></tr><tr id='perParMetConfig'></tr><tr id='perParRulerConfig'></tr><tr id='perParOperConfig'></tr></table></div>");
+		}
+
+		var perParGroupConfig = loadperParGroup(strExprDscr);
+		$(spanIDObj).find("#perParGroupConfig").html(perParGroupConfig);
+
+		var selectedPerParGroup = $(spanIDObj).find('#perParMetGroup').val();
+		var perParAppConfig = loadperParApp(strExprDscr,selectedPerParGroup);
+		$(spanIDObj).find("#perParAppConfig").html(perParAppConfig);
+
+		var selectedPerParApp = $(spanIDObj).find('#perParMetApp').val();
+		var perParMPConfig = loadperParMP(strExprDscr,selectedPerParGroup,selectedPerParApp);
+		$(spanIDObj).find("#perParMPConfig").html(perParMPConfig);
+
+		var selectedPerParMP = $(spanIDObj).find('#perParMetMP').val();
+		var perParMetConfig = loadperParMet(strExprDscr,selectedPerParGroup,selectedPerParApp,selectedPerParMP);
+		$(spanIDObj).find("#perParMetConfig").html(perParMetConfig);
+		$(spanIDObj).find("#perParRulerConfig").html("<td colspan='2'><hr/></td>");
+		var perParOperConfig = "<td><b>Aggregation</b></td><td><select id='perParMetAggr'><option value='AVG'>AVG</option><option value='SUM'>SUM</option><option value='VAR'>VAR</option><option value='STDEV'>STDEV</option><option value='MAX'>MAX</option><option value='MIN'>MIN</option><option value='COUNT'>COUNT</option></select></td>";
+		$(spanIDObj).find("#perParOperConfig").html(perParOperConfig);
+
+		$(spanIDObj).on('change',"#perParMetGroup",function()
+		{
+			var spanIDObj = $(this).closest('span');
+			var selectedPerParGroup = $(spanIDObj).find('#perParMetGroup').val();
+			var perParAppConfig = loadperParApp(strExprDscr,selectedPerParGroup);
+			$(spanIDObj).find("#perParAppConfig").html(perParAppConfig);
+
+			var selectedPerParApp = $(spanIDObj).find('#perParMetApp').val();
+			var perParMPConfig = loadperParMP(strExprDscr,selectedPerParGroup,selectedPerParApp);
+			$(spanIDObj).find("#perParMPConfig").html(perParMPConfig);
+
+			var selectedPerParMP = $(spanIDObj).find('#perParMetMP').val();
+			var perParMetConfig = loadperParMet(strExprDscr,selectedPerParGroup,selectedPerParApp,selectedPerParMP);
+			$(spanIDObj).find("#perParMetConfig").html(perParMetConfig);
+		});
+
+		$(spanIDObj).on('change',"#perParMetApp",function()
+		{
+			var spanIDObj = $(this).closest('span');
+			var selectedPerParGroup = $(spanIDObj).find('#perParMetGroup').val();
+			var selectedPerParApp = $(spanIDObj).find('#perParMetApp').val();
+			var perParMPConfig = loadperParMP(strExprDscr,selectedPerParGroup,selectedPerParApp);
+			$(spanIDObj).find("#perParMPConfig").html(perParMPConfig);
+
+			var selectedPerParMP = $(spanIDObj).find('#perParMetMP').val();
+			var perParMetConfig = loadperParMet(strExprDscr,selectedPerParGroup,selectedPerParApp,selectedPerParMP);
+			$(spanIDObj).find("#perParMetConfig").html(perParMetConfig);
+		});
+
+		$(spanIDObj).on('change',"#perParMetMP",function()
+		{
+			var spanIDObj = $(this).closest('span');
+			var selectedPerParGroup = $(spanIDObj).find('#perParMetGroup').val();
+			var selectedPerParApp = $(spanIDObj).find('#perParMetApp').val();
+			var selectedPerParMP = $(spanIDObj).find('#perParMetMP').val();
+			var perParMetConfig = loadperParMet(strExprDscr,selectedPerParGroup,selectedPerParApp,selectedPerParMP);
+			$(spanIDObj).find("#perParMetConfig").html(perParMetConfig);
+		});
+
+		$(spanIDObj).on('click','#showPerPar',popUP);
+	}
+
+	function loadperParGroup(strExprDscr)
+	{
+		var perParGroupConfig = "<td><b>Group</b></td><td><select id='perParMetGroup'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			perParGroupConfig = perParGroupConfig + "<option value='" + $(this).attr("name") + "'>" + $(this).attr("name") + "</option>";
+		});
+		perParGroupConfig = perParGroupConfig + "</select></td>";
+		return perParGroupConfig;
+	}
+
+	function loadperParApp(strExprDscr,selectedPerParGroup)
+	{
+		var perParMetConfig = "<td><b>App</b></td><td><select id='perParMetApp'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerParGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					perParMetConfig = perParMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("id") + "'>" + $(this).attr("name") + " [" + $(this).attr("id") + "]</option>";
+				});
+			}
+		});
+		perParMetConfig = perParMetConfig + "</select></td>";
+		return perParMetConfig;
+	}
+
+	function loadperParMP(strExprDscr,selectedPerParGroup,selectedPerParApp)
+	{
+		var perParMPConfig = "<td><b>MP</b></td><td><select id='perParMetMP'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerParGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					if($(this).attr("name") + ";" + $(this).attr("id") == selectedPerParApp)
+					{
+						$(this).find("MP").each(function()
+						{
+							perParMPConfig = perParMPConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("seqNo") + "'>" + $(this).attr("name") + "</option>";
+						});
+					}
+				});
+			}
+		});
+		perParMPConfig = perParMPConfig + "</select></td>";
+		return perParMPConfig;
+	}
+
+	function loadperParMet(strExprDscr,selectedPerParGroup,selectedPerParApp,selectedPerParMP)
+	{
+		var perParMetConfig = "<td><b>Check</b></td><td><select id='perParMetName'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerParGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					if($(this).attr("name") + ";" + $(this).attr("id") == selectedPerParApp)
+					{
+						$(this).find("MP").each(function()
+						{
+							if($(this).attr("name") + ";" + $(this).attr("seqNo") == selectedPerParMP)
+							{
+								$(this).find("metric").each(function()
+								{
+									perParMetConfig = perParMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("unit") + "'>" + $(this).attr("name") + "</option>";
+								});
+							}
+						});
+					}
+				});
+			}
+		});
+		perParMetConfig = perParMetConfig + "</select></td>";
+		return perParMetConfig;
+	}
+	
+	function popUP(event)
+	{
+		var spanIDObj = $(this).closest('td');
+		$(spanIDObj).find('#perParCont').css({'display': 'block', 'top': $(this).position().top + $(this).height(), 'left':  $(this).position().left});
+	}
+
+	function delPerPar(event)
+	{
+		$(document).find('#newPerPar').prev().remove();
+	}
+
+	function displayPerVis(strExprDscr)
+	{
+		var perVisContText = "<ul id='perVis'><li class='closed'><span class='folder'><b>Performance Visualization Section</b></span><ul id='visualization'><li>";
+		var perVisText = "<table style='background-color:LightGray;'><tr id='newPerVis'></tr><tr id='addPerVis'><td><button>Add visualization</button></td></tr></table>";
+		perVisContText = perVisContText + perVisText + "</li></ul></li></ul>";
+
+		$(document).find('#perVisCont').html(perVisContText);
+		$(document).find("#perVis").treeview();
+		$(document).find("#perVisCont").css("border","1px solid black");
+		$(document).on('click','#addPerVis',addPerVis);
+	}
+
+	function addPerVis(event)
+	{
+		trID=randomString();
+		$(document).find('#newPerVis').attr('id',trID);
+		trIDObj = $('#'+trID).closest('tr');
+		$('<tr id="newPerVis"></tr>').insertAfter($(trIDObj));
+
+		$(trIDObj).html("<td id='perVisGroupConfig'></td><td id='perVisAppConfig'></td><td id='perVisMPConfig'></td><td id='perVisMetConfig'></td><td id='perVisDel'></td>");
+
+		var perVisGroupConfig = loadperVisGroup(strExprDscr);
+		$(trIDObj).find("#perVisGroupConfig").html(perVisGroupConfig);
+
+		var selectedPerVisGroup = $(trIDObj).find('#perVisMetGroup').val();
+		var perVisAppConfig = loadperVisApp(strExprDscr,selectedPerVisGroup);
+		$(trIDObj).find("#perVisAppConfig").html(perVisAppConfig);
+
+		var selectedPerVisApp = $(trIDObj).find('#perVisMetApp').val();
+		var perVisMPConfig = loadperVisMP(strExprDscr,selectedPerVisGroup,selectedPerVisApp);
+		$(trIDObj).find("#perVisMPConfig").html(perVisMPConfig);
+
+		var selectedPerVisMP = $(trIDObj).find('#perVisMetMP').val();
+		var perVisMetConfig = loadperVisMet(strExprDscr,selectedPerVisGroup,selectedPerVisApp,selectedPerVisMP);
+		$(trIDObj).find("#perVisMetConfig").html(perVisMetConfig);
+		$(trIDObj).find("#perVisDel").html("<button><img src='figures/Delete.png' title='delete performance visulization' /></button>");
+
+		$(trIDObj).on('change',"#perVisMetGroup",function()
+		{
+			var trIDObj = $(this).closest('tr');
+			var selectedPerVisGroup = $(trIDObj).find('#perVisMetGroup').val();
+			var perVisAppConfig = loadperVisApp(strExprDscr,selectedPerVisGroup);
+			$(trIDObj).find("#perVisAppConfig").html(perVisAppConfig);
+
+			var selectedPerVisApp = $(trIDObj).find('#perVisMetApp').val();
+			var perVisMPConfig = loadperVisMP(strExprDscr,selectedPerVisGroup,selectedPerVisApp);
+			$(trIDObj).find("#perVisMPConfig").html(perVisMPConfig);
+
+			var selectedPerVisMP = $(trIDObj).find('#perVisMetMP').val();
+			var perVisMetConfig = loadperVisMet(strExprDscr,selectedPerVisGroup,selectedPerVisApp,selectedPerVisMP);
+			$(trIDObj).find("#perVisMetConfig").html(perVisMetConfig);
+		});
+
+		$(trIDObj).on('change',"#perVisMetApp",function()
+		{
+			var trIDObj = $(this).closest('tr');
+			var selectedPerVisGroup = $(trIDObj).find('#perVisMetGroup').val();
+			var selectedPerVisApp = $(trIDObj).find('#perVisMetApp').val();
+			var perVisMPConfig = loadperVisMP(strExprDscr,selectedPerVisGroup,selectedPerVisApp);
+			$(trIDObj).find("#perVisMPConfig").html(perVisMPConfig);
+
+			var selectedPerVisMP = $(trIDObj).find('#perVisMetMP').val();
+			var perVisMetConfig = loadperVisMet(strExprDscr,selectedPerVisGroup,selectedPerVisApp,selectedPerVisMP);
+			$(trIDObj).find("#perVisMetConfig").html(perVisMetConfig);
+		});
+
+		$(trIDObj).on('change',"#perVisMetMP",function()
+		{
+			var trIDObj = $(this).closest('tr');
+			var selectedPerVisGroup = $(trIDObj).find('#perVisMetGroup').val();
+			var selectedPerVisApp = $(trIDObj).find('#perVisMetApp').val();
+			var selectedPerVisMP = $(trIDObj).find('#perVisMetMP').val();
+			var perVisMetConfig = loadperVisMet(strExprDscr,selectedPerVisGroup,selectedPerVisApp,selectedPerVisMP);
+			$(trIDObj).find("#perVisMetConfig").html(perVisMetConfig);
+		});
+
+		$(trIDObj).on('click',"#perVisDel",function()
+		{
+			trIDObj = $(this).closest('tr');
+			$(trIDObj).remove();
+		});
+	}
+
+	function loadperVisGroup(strExprDscr)
+	{
+		var perVisGroupConfig = "<b>Group: </b><select id='perVisMetGroup'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			perVisGroupConfig = perVisGroupConfig + "<option value='" + $(this).attr("name") + "'>" + $(this).attr("name") + "</option>";
+		});
+		perVisGroupConfig = perVisGroupConfig + "</select>";
+		return perVisGroupConfig;
+	}
+
+	function loadperVisApp(strExprDscr,selectedPerVisGroup)
+	{
+		var perVisMetConfig = "<b>App: </b><select id='perVisMetApp'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerVisGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					perVisMetConfig = perVisMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("id") + "'>" + $(this).attr("name") + " [" + $(this).attr("id") + "]</option>";
+				});
+			}
+		});
+		perVisMetConfig = perVisMetConfig + "</select>";
+		return perVisMetConfig;
+	}
+
+
+	function loadperVisMP(strExprDscr,selectedPerVisGroup,selectedPerVisApp)
+	{
+		var perVisMPConfig = "<b>MP: </b><select id='perVisMetMP'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerVisGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					if($(this).attr("name") + ";" + $(this).attr("id") == selectedPerVisApp)
+					{
+						$(this).find("MP").each(function()
+						{
+							perVisMPConfig = perVisMPConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("seqNo") + "'>" + $(this).attr("name") + "</option>";
+						});
+					}
+				});
+			}
+		});
+		perVisMPConfig = perVisMPConfig + "</select>";
+		return perVisMPConfig;
+	}
+
+	function loadperVisMet(strExprDscr,selectedPerVisGroup,selectedPerVisApp,selectedPerVisMP)
+	{
+		var perVisMetConfig = "<b>Visualize: </b><select id='perVisMetName'>";
+		var objExprDscr = $.parseXML(strExprDscr);
+		$(objExprDscr).find("Group").each(function()
+		{
+			if($(this).attr("name") == selectedPerVisGroup)
+			{
+				$(this).find("App").each(function()
+				{
+					if($(this).attr("name") + ";" + $(this).attr("id") == selectedPerVisApp)
+					{
+						$(this).find("MP").each(function()
+						{
+							if($(this).attr("name") + ";" + $(this).attr("seqNo") == selectedPerVisMP)
+							{
+								$(this).find("metric").each(function()
+								{
+									perVisMetConfig = perVisMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("unit") + "'>" + $(this).attr("name") + "</option>";
+								});
+							}
+						});
+					}
+				});
+			}
+		});
+		perVisMetConfig = perVisMetConfig + "</select>";
+		return perVisMetConfig;
+	}
+
+	function displayIntEst()
+	{
+		var intEstContText = "<ul id='intEst'><li class='closed'><span class='folder'><b>Interference Estimation Section</b></span><ul id='detection'><li>";
+		var intEstText = "<table style='background-color:LightGray;'><tr><td><b>Pre/Post Estimation</b><input type='checkbox' id='prePostEst' /></td><td id='scanMethodCont'></td><td id='centerFreqCont'></td></tr></table>";
+		intEstContText = intEstContText + intEstText + "</li></ul></li></ul>";
+
+		$(document).find('#intEstCont').html(intEstContText);
+		$(document).find("#intEst").treeview();
+		$(document).find("#intEstCont").css("border","1px solid black");
+
+		$(document).on('click','#prePostEst',function()
+		{
+			if($(this).attr('checked') == "checked")
+			{
+				$(document).find('#scanMethodCont').html("<b>Scan Method</b> <select id='scanMethod'><option value='2.4GHz'>2.4GHz</option><option value='20MHz_Band'>20MHz Band</option></select>");
+
+				$(document).on('change','#scanMethod',function()
+				{
+					if($(this).val() == "20MHz_Band")
+						$(document).find('#centerFreqCont').html("<b>Center Frequency (MHz)</b> <select id='centerFreq'><option value='2412'>2412</option><option value='2417'>2417</option><option value='2422'>2422</option><option value='2427'>2427</option><option value='2432'>2432</option><option value='2437'>2437</option><option value='2442'>2442</option><option value='2447'>2447</option><option value='2452'>2452</option><option value='2457'>2457</option><option value='2462'>2462</option><option value='2467'>2467</option><option value='2472'>2472</option><option value='2484'>2484</option><option value='5180'>5180</option><option value='5200'>5200</option><option value='5220'>5220</option><option value='5240'>5240</option><option value='5260'>5260</option><option value='5280'>5280</option><option value='5300'>5300</option><option value='5320'>5320</option><option value='5500'>5500</option><option value='5520'>5520</option><option value='5540'>5540</option><option value='5560'>5560</option><option value='5580'>5580</option><option value='5600'>5600</option><option value='5620'>5620</option><option value='5640'>5640</option><option value='5660'>5660</option><option value='5680'>5680</option><option value='5700'>5700</option><option value='5745'>5745</option><option value='5765'>5765</option><option value='5785'>5785</option><option value='5805'>5805</option><option value='5825'>5825</option></select>");
+					else
+						$(document).find('#centerFreqCont').html("");
+				});
+			}
+			else
+			{
+				$(document).find('#scanMethodCont').html("");
+				$(document).find('#centerFreqCont').html("");
+			}
+		});
+	}
+
+	function displayStartExpr()
+	{
+		var exprStartContText = "<table><tr><td><b>Rounds</b></td><td><input type='text' id='rounds' value='1' size='3'></td>";
+		exprStartContText = exprStartContText + "<td><button id='startExpr'><b>Start Experiment</b></button></td></tr></table>";
+		$(document).find("#exprStartCont").html(exprStartContText);
+		$(document).find("#exprStartCont").css("border","1px solid black");
+		$(document).find("#exprStartCont").find("#rounds").numeric();
+
+		$(document).on('click','#startExpr', startExpr);
+	}
+
+	function randomString()
+	{
+		var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+		var string_length = 8;
+		var randomstring = '';
+		for (var i=0; i<string_length; i++)
+		{
+			var rnum = Math.floor(Math.random() * chars.length);
+			randomstring += chars.substring(rnum,rnum+1);
+		}
+		return randomstring;
+	}
+
+	function objToStrXML(obj)
+	{
+		strXML = strXML + "<" + $(obj)[0].tagName;
+		$(obj.attributes).each(function()
+		{
+			strXML = strXML + ' ' + this.nodeName + '="' + this.nodeValue + '"';
+		});
+		strXML = strXML + ">";
+		
+		if($(obj).children().length == "0")
+			strXML = strXML + $(obj).text();
+		else
+			$(obj).children().each(function()
+			{
+				objToStrXML(this);
+			});
+		
+		strXML = strXML + "</" + $(obj)[0].tagName + ">";
+
+		return strXML;		
+	}
+	
+	function startExpr(event)
+	{
+		var ED_Name = $(document).find("#loadExprDesr").val().split('\\').pop();
+
+		var perVisMetGroup = "";	var perVisMetApp = "";	var perVisMetMP = "";	var perVisMetName = "";
+		$(document).find('#perVisCont').find('tr').each(function()
+		{
+			if($(this).attr('id') != "addPerVis" && $(this).attr('id') != "newPerVis")
+			{
+				perVisMetGroup = perVisMetGroup + $(this).find('#perVisMetGroup').val() + "|";
+				perVisMetApp = perVisMetApp + $(this).find('#perVisMetApp').val().split(';')[0] + "|";
+				perVisMetMP = perVisMetMP + $(this).find('#perVisMetMP').val() + "|";
+				perVisMetName = perVisMetName + $(this).find('#perVisMetName').val() + "|";
+			}
+		});
+		perVisMetGroup = perVisMetGroup.substring(0,perVisMetGroup.length-1);
+		perVisMetApp = perVisMetApp.substring(0,perVisMetApp.length-1);
+		perVisMetMP = perVisMetMP.substring(0,perVisMetMP.length-1);
+		perVisMetName = perVisMetName.substring(0,perVisMetName.length-1);
+
+		var prePostEst = $(document).find('#prePostEst').attr('checked')?true:false;
+		var scanMethod = $(document).find('#scanMethod').val();
+		var centerFreq = $(document).find('#centerFreq').val();
+		
+		var rounds = $(document).find("#rounds").val();
+
+		var exprPar = "ED_Name=" + ED_Name;
+		exprPar = exprPar + "&perVisMetGroup=" + perVisMetGroup + "&perVisMetApp=" + perVisMetApp + "&perVisMetMP=" + perVisMetMP + "&perVisMetName=" + perVisMetName;
+		exprPar = exprPar + "&prePostEst=" + prePostEst + "&scanMethod=" + scanMethod + "&centerFreqWI_FI=" + centerFreq;
+		exprPar = exprPar + "&rounds=" + rounds;
+
+		var parOptType = $(document).find('#parOptType').val();
+		exprPar = exprPar + "&parOptType=" + parOptType;
+		if(parOptType == 'SSRuC')
+		{
+			var objParMetName = $(document).find('#objParMetName').val();
+
+			var perParMetGroup = "";	var perParMetApp = "";	var perParMetMP = "";	var perParMetName = "";	var perParMetAggr = "";	var perParMetOper = "";
+			$(document).find('#parOptCont').find('#optimization').find('span').each(function()
+			{
+				if($(this).attr('id') != "newPerPar")
+				{
+					perParMetGroup = perParMetGroup + $(this).find('#perParMetGroup').val() + "|";
+					perParMetApp = perParMetApp + $(this).find('#perParMetApp').val().split(';')[0] + "|";
+					perParMetMP = perParMetMP + $(this).find('#perParMetMP').val() + "|";
+					perParMetName = perParMetName + $(this).find('#perParMetName').val() + "|";
+					perParMetAggr = perParMetAggr + $(this).find('#perParMetAggr').val() + "|";
+					if($(this).find('#operators').length != 0)
+						perParMetOper = perParMetOper + $(this).find('#operators').val() + "|";
+				}
+			});
+			perParMetGroup = perParMetGroup.substring(0,perParMetGroup.length-1);
+			perParMetApp = perParMetApp.substring(0,perParMetApp.length-1);
+			perParMetMP = perParMetMP.substring(0,perParMetMP.length-1);
+			perParMetName = perParMetName.substring(0,perParMetName.length-1);
+			perParMetAggr = perParMetAggr.substring(0,perParMetAggr.length-1);
+			perParMetOper = perParMetOper.substring(0,perParMetOper.length-1);
+
+			var perParContext = $(document).find('#perParContext').val();
+		
+			var startVal = $(document).find('#startVal').val();
+			var endVal = $(document).find('#endVal').val();
+			var stepSize = $(document).find('#stepSize').val();
+			var stepSizeRedRate = $(document).find('#stepSizeRedRate').val();
+			var stepSizeLimit = $(document).find('#stepSizeLimit').val();
+
+			exprPar = exprPar + "&objParMetName=" + objParMetName;
+			exprPar = exprPar + "&perParMetGroup=" + perParMetGroup + "&perParMetApp=" + perParMetApp + "&perParMetMP=" + perParMetMP + "&perParMetName=" + perParMetName + "&perParMetAggr=" + perParMetAggr + "&perParMetOper=" + perParMetOper + "&perParContext=" + perParContext;
+			exprPar = exprPar + "&startVal=" + startVal + "&endVal=" + endVal + "&stepSize=" + stepSize + "&stepSizeRedRate=" + stepSizeRedRate + "&stepSizeLimit=" + stepSizeLimit;
+		}
+		else if(parOptType == 'IVuC')
+		{
+			var objParMetName = $(document).find('#objParMetName').val();
+
+			var perParMetGroup = "";	var perParMetApp = "";	var perParMetMP = "";	var perParMetName = "";	var perParMetAggr = "";	var perParMetOper = "";
+			$(document).find('#parOptCont').find('#optimization').find('span').each(function()
+			{
+				if($(this).attr('id') != "newPerPar")
+				{
+					perParMetGroup = perParMetGroup + $(this).find('#perParMetGroup').val() + "|";
+					perParMetApp = perParMetApp + $(this).find('#perParMetApp').val().split(';')[0] + "|";
+					perParMetMP = perParMetMP + $(this).find('#perParMetMP').val() + "|";
+					perParMetName = perParMetName + $(this).find('#perParMetName').val() + "|";
+					perParMetAggr = perParMetAggr + $(this).find('#perParMetAggr').val() + "|";
+					if($(this).find('#operators').length != 0)
+						perParMetOper = perParMetOper + $(this).find('#operators').val() + "|";
+				}
+			});
+			perParMetGroup = perParMetGroup.substring(0,perParMetGroup.length-1);
+			perParMetApp = perParMetApp.substring(0,perParMetApp.length-1);
+			perParMetMP = perParMetMP.substring(0,perParMetMP.length-1);
+			perParMetName = perParMetName.substring(0,perParMetName.length-1);
+			perParMetAggr = perParMetAggr.substring(0,perParMetAggr.length-1);
+			perParMetOper = perParMetOper.substring(0,perParMetOper.length-1);
+
+			var perParCondType = $(document).find('#perParCondType').val();
+			var perParCondValue = $(document).find('#perParCondValue').val();
+		
+			var startVal = $(document).find('#startVal').val();
+			var endVal = $(document).find('#endVal').val();
+			var stepSize = $(document).find('#stepSize').val();
+			var stepSizeRedRate = $(document).find('#stepSizeRedRate').val();
+			var stepSizeLimit = $(document).find('#stepSizeLimit').val();
+
+			exprPar = exprPar + "&objParMetName=" + objParMetName;
+			exprPar = exprPar + "&perParMetGroup=" + perParMetGroup + "&perParMetApp=" + perParMetApp + "&perParMetMP=" + perParMetMP + "&perParMetName=" + perParMetName + "&perParMetAggr=" + perParMetAggr + "&perParMetOper=" + perParMetOper + "&perParCondType=" + perParCondType + "&perParCondValue=" + perParCondValue;
+			exprPar = exprPar + "&startVal=" + startVal + "&endVal=" + endVal + "&stepSize=" + stepSize + "&stepSizeRedRate=" + stepSizeRedRate + "&stepSizeLimit=" + stepSizeLimit;
+		}
+
+		window.location =  "experiment.html?" + exprPar;
+	}
+	</script>
+</head>
+<body>
+	<h3 align="center">Experiment Execution Tool</h3>
+	<table align="center">
+	<tr>
+		<td style='border:1px solid black;' align='center'>
+			<h4>Load/Execute Experiment</h4>
+			<form enctype="multipart/form-data" id="loadForm" action="event_handler.php?event='loading'" method="POST">
+			<table>
+				<tr>
+					<td><b>Testbed</b></td>
+					<td><select id='testbed'><option value='w-iLab.t - Gent'>w-iLab.t - Gent</option><option value='TWIST - Berlin' disabled="disabled">TWIST - Berlin</option><option value='Iris - Dublin' disabled="disabled">Iris - Dublin</option><option value='LTE-Advanced - Dresden' disabled="disabled">LTE-Advanced - Dresden</option><option value='Log-a-tec - Ljubljana' disabled="disabled">Log-a-tec - Ljubljana</option></select></td>
+				</tr>
+				<tr>
+					<td><b>ExprDesr</b></td>
+					<td><input type="file" name="loadExprDesr" id="loadExprDesr" accept="text/x-ruby"/></td>
+					<td id="exprDesrStatus"></td>
+				</tr>
+				<tr>
+					<td><b>Package</b></td>
+					<td><input type="file" name="loadPackage" id="loadPackage" accept="application/x-tar"/></td>
+					<td id="packageStatus"></td>
+				</tr>
+				<tr>
+					<td colspan='2'><input type="checkbox" name ="untarPackage" value="yes"/>Untar Package</td>
+					<td align='right'><input type="submit" value="Load"/></td>
+				</tr>
+			</table>
+			</form>
+		</td>
+	<tr>
+		<td id="parOptCont"></td>
+	</tr>
+	<tr>
+		<td id="perVisCont"></td>
+	</tr>
+	<tr>
+		<td id="intEstCont"></td>
+	</tr>
+	<tr>
+		<td id="exprStartCont"></td>
+	</tr>
+	</table>
+</body>
+</html>

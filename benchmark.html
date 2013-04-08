@@ -1,0 +1,850 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.flot.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.treeview.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.alphanumeric.pack.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.jsanalysis.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.flot.fillbetween.js"></script>
+	<style type='text/css'>
+		#graphAnalysis, #defaultAnalysis { padding: 0; margin: 0; list-style: none; }
+		#graphAnalysis .hover { color: red; cursor: pointer; }
+		#graphAnalysis span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#graphAnalysis li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#graphAnalysis, #defaultAnalysis { padding: 0; margin: 0; list-style: none; }
+
+		#customGraphAnalysis, #customAnalysis { padding: 0; margin: 0; list-style: none; }
+		#customGraphAnalysis .hover { color: red; cursor: pointer; }
+		#customGraphAnalysis span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#customGraphAnalysis li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#customGraphAnalysis, #customAnalysis { padding: 0; margin: 0; list-style: none; }
+
+		#DBSelect, #DB { padding: 0; margin: 0; list-style: none; }
+		#DBSelect .hover { color: red; cursor: pointer; }
+		#DBSelect span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#DBSelect li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#DBSelect, #DB { padding: 0; margin: 0; list-style: none; }
+	</style>
+	<script>
+	var solConfigFileName;	var solDBPackageName;	var objSolConfig;	var solDBFolder;	var objSolDBList;	var lastGraphAnalysis;
+	$(document).ready(function()
+	{
+		loadConfig();
+
+		$(this).on('click','#addGraph', addGraph);
+		$(this).on('click','#addScore',addScore);
+	
+		function loadConfig()
+		{
+			var argument = location.search.split('?');
+			var string = argument[1].split('&');
+			solConfigFileName = string[0].split('=')[1];
+			solDBPackageName = string[1].split('=')[1];
+
+			$.ajax
+			({
+				async: false,
+				url:"event_handler.php?event=loadBMConfig" + "&solConfigFileName=" + solConfigFileName,
+				success:function(result)
+				{
+					objSolConfig=$.parseXML(result);
+				}
+			});
+
+			// extract the database package into a folder with name solDBPackageName variable
+			solDBFolder = solDBPackageName.split('.')[0];
+			var command = "cd tmp/ && mkdir -p " + solDBFolder + " && mv  " + solDBPackageName + " " + solDBFolder + " && cd " + solDBFolder + " && tar -xf " + solDBPackageName + " && rm " + solDBPackageName;
+			$.ajax
+			({
+				async:false,
+				type: "POST",
+				url:"event_handler.php?event=execCommand",
+				data: {command : command}
+			});
+
+			// retrieve database name list from solDBFolder
+			$.ajax
+			({
+				async:false,
+				dataType: "xml",
+				url:"event_handler.php?event=retrDBList" + "&solDBFolder=" + solDBFolder,
+				success:function(result)
+				{
+					objSolDBList = result;
+				}
+			});
+		}
+
+		// when add graph button is clicked
+		function addGraph()
+		{
+			var pID=randomString();
+			$('#newGraph').attr('id',pID);
+			var pIDObj = $('#'+pID).closest('p');
+			$('<p id="newGraph" align="center"></p>').insertAfter($(pIDObj));
+
+			var graphOptionText = "<tr><td><table><tr><td><input type='checkbox' id='label' checked='checked'>LABEL</td><td>|</td><td id='onlyAvgStdevCont'></td><td>|</td><td id='axisRangeCont'></td></tr></table></td><td id='delGraph' align='right'><button><b>Delete</b></button></td></tr>";
+			var graphAreaText = "<tr><td colspan='2'><div id='solFig' style='width:850px;height:500px;'></td></tr>";
+			var solDBListText = "<tr><td style='border:1px solid black;' colspan='2'><ul id='DBSelect'><li class='open'><span class='folder'><b>Database selection</b></span><ul id='DB'><li>" + arrangeSolDBList(objSolDBList) + "</li></ul></li></ul></td></tr>";
+			var graphAnalysisText = "<tr><td style='border:1px solid black;' colspan='2'><ul id='graphAnalysis'><li class='closed'><span class='folder'><b>Graph Analysis</b></span><ul id='defaultAnalysis'><li><table><tr><td><b>[x-axis]</b></td><td id='solXGroupConfig'></td><td id='solXAppConfig'></td><td id='solXMPConfig'></td><td id='solXMetConfig'></td></tr><tr><td><b>[y-axis]</b></td><td id='solYGroupConfig'></td><td id='solYAppConfig'></td><td id='solYMPConfig'></td><td id='solYMetConfig'></td></tr><tr id='avgStdevDefaultCont' colspan='6'></tr></table></li></ul></li></ul></td></tr>";
+			var customGraphAnaylsisText = "<tr><td style='border:1px solid black;' colspan='2'><ul id='customGraphAnalysis'><li class='closed'><span class='folder'><b>Custom Graph Analysis</b></span><ul id='customAnalysis'><li><table><tr id='solXCustomConfig'></tr><tr id='solYCustomConfig'></tr><tr id='avgStdevCustomCont'></tr></table></li></ul></li></ul></td></tr>";
+			var rulerText = "<tr><td colspan='2'><hr/></td></tr>";
+
+			$(pIDObj).html("<table>" + graphOptionText + graphAreaText + solDBListText + graphAnalysisText + customGraphAnaylsisText + rulerText + "</table>");
+			$.plot($(pIDObj).find("#solFig"), [0,0]);
+			$(pIDObj).find("#DBSelect").treeview();
+			$(pIDObj).find("#graphAnalysis").treeview();
+			$(pIDObj).find("#customGraphAnalysis").treeview();
+
+			var solXGroupConfig = loadGroup("groupXName");		// load node groups with selection ID "groupXName"
+			$(pIDObj).find("#solXGroupConfig").html(solXGroupConfig);
+
+			var groupXName = $(pIDObj).find("#groupXName").val();
+			var solXAppConfig = loadApp(groupXName,"appXName");	// load node apps with selection ID "appXName"
+			$(pIDObj).find("#solXAppConfig").html(solXAppConfig);
+
+			var appXName = $(pIDObj).find("#appXName").val();
+			var solXMPConfig = loadMP(groupXName,appXName,"MPXName");	// load node MPs with selection ID "MPXName"
+			$(pIDObj).find("#solXMPConfig").html(solXMPConfig);
+
+			var MPXName = $(pIDObj).find("#MPXName").val();
+			var solXMetConfig = loadMetric(groupXName,appXName,MPXName,"metXName");	// load node metrics with selection ID "metXName"
+			$(pIDObj).find("#solXMetConfig").html(solXMetConfig);
+
+			var solYGroupConfig = loadGroup("groupYName");		// load node groups with selection ID "groupYName"
+			$(pIDObj).find("#solYGroupConfig").html(solYGroupConfig);
+
+			var groupYName = $(pIDObj).find("#groupYName").val();
+			var solYAppConfig = loadApp(groupYName,"appYName");	// load node apps with selection ID "appYName"
+			$(pIDObj).find("#solYAppConfig").html(solYAppConfig);
+
+			var appYName = $(pIDObj).find("#appYName").val();
+			var solYMPConfig = loadMP(groupYName,appYName,"MPYName");	// load node MPs with selection ID "MPYName"
+			$(pIDObj).find("#solYMPConfig").html(solYMPConfig);
+
+			var MPYName = $(pIDObj).find("#MPYName").val();
+			var solYMetConfig = loadMetric(groupYName,appYName,MPYName,"metYName");	// load node metrics with selection ID "metYName"
+			$(pIDObj).find("#solYMetConfig").html(solYMetConfig);
+
+			var avgStdevDefaultText = "<td><input type='checkbox' id='avgStdevDefault'>AVG/STDEV</td><td colspan='4'></td><td align='right'><button id='startDefaultGraphAnalysis'><img src='figures/cross.png' title='start graph analysis'></button></td>";
+			$(pIDObj).find("#avgStdevDefaultCont").html(avgStdevDefaultText);
+			$(pIDObj).on('click','#avgStdevDefault',function()
+			{
+				var pIDObj = $(this).closest('p');
+				if($(pIDObj).find('#avgStdevDefault').attr('checked') == "checked")
+					$(pIDObj).find("#onlyAvgStdevCont").html("<input type='checkbox' id='onlyAvgStdev'>SHOW ONLY AVG/STDEV");
+				else
+					$(pIDObj).find("#onlyAvgStdevCont").html("");
+			});
+
+			$(pIDObj).on('change',"#groupXName",function()
+			{
+				var groupXName = $(pIDObj).find("#groupXName").val();
+				var solXAppConfig = loadApp(groupXName,"appXName");
+				$(pIDObj).find("#solXAppConfig").html(solXAppConfig);
+
+				var appXName = $(pIDObj).find("#appXName").val();
+				var solXMPConfig = loadMP(groupXName,appXName,"MPXName");
+				$(pIDObj).find("#solXMPConfig").html(solXMPConfig);
+
+				var MPXName = $(pIDObj).find("#MPXName").val();
+				var solXMetConfig = loadMetric(groupXName,appXName,MPXName,"metXName");
+				$(pIDObj).find("#solXMetConfig").html(solXMetConfig);
+			});
+			$(pIDObj).on('change',"#appXName",function()
+			{
+				var groupXName = $(pIDObj).find("#groupXName").val();
+				var appXName = $(pIDObj).find("#appXName").val();
+				var solXMPConfig = loadMP(groupXName,appXName,"MPXName");
+				$(pIDObj).find("#solXMPConfig").html(solXMPConfig);
+
+				var MPXName = $(pIDObj).find("#MPXName").val();
+				var solXMetConfig = loadMetric(groupXName,appXName,MPXName,"metXName");
+				$(pIDObj).find("#solXMetConfig").html(solXMetConfig);
+			});
+			$(pIDObj).on('change',"#MPXName",function()
+			{
+				var groupXName = $(pIDObj).find("#groupXName").val();
+				var appXName = $(pIDObj).find("#appXName").val();
+				var MPXName = $(pIDObj).find("#MPXName").val();
+				var solXMetConfig = loadMetric(groupXName,appXName,MPXName,"metXName");
+				$(pIDObj).find("#solXMetConfig").html(solXMetConfig);
+			});
+
+			$(pIDObj).on('change',"#groupYName",function()
+			{
+				var groupYName = $(pIDObj).find("#groupYName").val();
+				var solYAppConfig = loadApp(groupYName,"appYName");
+				$(pIDObj).find("#solYAppConfig").html(solYAppConfig);
+
+				var appYName = $(pIDObj).find("#appYName").val();
+				var solYMPConfig = loadMP(groupYName,appYName,"MPYName");
+				$(pIDObj).find("#solYMPConfig").html(solYMPConfig);
+
+				var MPYName = $(pIDObj).find("#MPYName").val();
+				var solYMetConfig = loadMetric(groupYName,appYName,MPYName,"metYName");
+				$(pIDObj).find("#solYMetConfig").html(solYMetConfig);
+			});
+			$(pIDObj).on('change',"#appYName",function()
+			{
+				var groupYName = $(pIDObj).find("#groupYName").val();
+				var appYName = $(pIDObj).find("#appYName").val();
+				var solYMPConfig = loadMP(groupYName,appYName,"MPYName");
+				$(pIDObj).find("#solYMPConfig").html(solYMPConfig);
+
+				var MPYName = $(pIDObj).find("#MPYName").val();
+				var solYMetConfig = loadMetric(groupYName,appYName,MPYName,"metYName");
+				$(pIDObj).find("#solYMetConfig").html(solYMetConfig);
+			});
+			$(pIDObj).on('change',"#MPYName",function()
+			{
+				var groupYName = $(pIDObj).find("#groupYName").val();
+				var appYName = $(pIDObj).find("#appYName").val();
+				var MPYName = $(pIDObj).find("#MPYName").val();
+				var solYMetConfig = loadMetric(groupYName,appYName,MPYName,"metYName");
+				$(pIDObj).find("#solYMetConfig").html(solYMetConfig);
+			});
+			$(pIDObj).on('click','#startDefaultGraphAnalysis',startDefaultGraphAnalysis);
+
+			var solXCustomConfig = loadXCustom();
+			var solYCustomConfig = loadYCustom();
+			$(pIDObj).find("#solXCustomConfig").html(solXCustomConfig);
+			$(pIDObj).find("#solYCustomConfig").html(solYCustomConfig);
+
+			var avgStdevCustomText = "<td><input type='checkbox' id='avgStdevCustom'/>AVG/STDEV</td><td align='right'><button id='startCustomGraphAnalysis'><img src='figures/cross.png' title='start custom graph analysis'></button></td>";
+			$(pIDObj).find("#avgStdevCustomCont").html(avgStdevCustomText);
+			$(pIDObj).on('click','#avgStdevCustom',function()
+			{
+				var pIDObj = $(this).closest('p');
+				if($(pIDObj).find('#avgStdevCustom').attr('checked') == "checked")
+					$(pIDObj).find("#onlyAvgStdevCont").html("<input type='checkbox' id='onlyAvgStdev'>SHOW ONLY AVG/STDEV");
+				else
+					$(pIDObj).find("#onlyAvgStdevCont").html("");
+			});
+
+			$(pIDObj).on('click','#startCustomGraphAnalysis',startCustomGraphAnalysis);
+			$(pIDObj).on('click','#delGraph',delGraph);
+		}
+
+		// arrange DB List in order of search parameter, experiment name, run #, and parameter value
+		function arrangeSolDBList(objSolDBList)
+		{
+			var searchPar = $(objSolDBList).find('experiment').attr('searchPar');
+
+			var solDBListArranged = "<table><tr><td>Search Parameter: <b><u>" + searchPar + "</u></b></td></tr>";
+			solDBListArranged = solDBListArranged + "<tr><td><table><tr>";
+			$(objSolDBList).find("solution").each(function()
+			{
+				var exprName = $(this).attr('name');
+				solDBListArranged = solDBListArranged + "<td><table><tr><td><u>Expr: <b>" + exprName + "</b></u></td></tr>";
+				$(this).find("DB").each(function()
+				{
+					var exprID = $(this).attr('exprID');
+					var runID = $(this).attr('runID');
+					var value = $(this).attr('value');
+					solDBListArranged = solDBListArranged + "<tr><td><input type='checkbox' value='" + exprName + "#" + exprID + "#" + runID + "#" + searchPar + "#" + value + "' checked>RUN" + runID + " @ " + value + "</td><td id='scoreVal'></td><tr>";
+				});
+				solDBListArranged = solDBListArranged + "</table></td>";
+			});
+			solDBListArranged = solDBListArranged + "</tr></table></td></tr></table>";
+
+			return solDBListArranged;
+		}
+
+		// load group of nodes from meta data
+		function loadGroup(groupSelectID)
+		{
+			var solGroupConfig = "<b>Group: </b><select id='" + groupSelectID + "'>";
+			$(objSolConfig).find("Group").each(function()
+			{
+				solGroupConfig = solGroupConfig + "<option value='" + $(this).attr("name") + "'>" + $(this).attr("name") + "</option>";
+			});
+			solGroupConfig = solGroupConfig + "</select>";
+			return solGroupConfig;
+		}
+
+		// load application for selected group from meta data
+		function loadApp(groupName,appSelectID)
+		{
+			var solXMetConfig = "<b>App: </b><select id='" + appSelectID + "'>";
+			$(objSolConfig).find("Group").each(function()
+			{
+				if($(this).attr("name") == groupName)
+				{
+					$(this).find("App").each(function()
+					{
+						solXMetConfig = solXMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("id") + "'>" + $(this).attr("name") + " [" + $(this).attr("id") + "]</option>";
+					});
+				}
+			});
+			solXMetConfig = solXMetConfig + "</select>";
+			return solXMetConfig;
+		}
+
+		// load MP for selected application and group from meta data
+		function loadMP(groupName,appName,mpSelectID)
+		{
+			var solMPConfig = "<b>MP: </b><select id='" + mpSelectID + "'>";
+			$(objSolConfig).find("Group").each(function()
+			{
+				if($(this).attr("name") == groupName)
+				{
+					$(this).find("App").each(function()
+					{
+						if($(this).attr("name") + ";" + $(this).attr("id") == appName)
+						{
+							$(this).find("MP").each(function()
+							{
+								solMPConfig = solMPConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("seqNo") + "'>" + $(this).attr("name") + "</option>";
+
+							});
+						}
+					});
+				}
+			});
+			solMPConfig = solMPConfig + "</select>";
+			return solMPConfig;
+		}
+
+		// load metric for selected MP, application and group from meta data
+		function loadMetric(groupName,appName,MPName,metSelectID)
+		{
+			var solXMetConfig = "<b>metric: </b><select id='" + metSelectID + "'>";
+			$(objSolConfig).find("Group").each(function()
+			{
+				if($(this).attr("name") == groupName)
+				{
+					$(this).find("App").each(function()
+					{
+						if($(this).attr("name") + ";" + $(this).attr("id") == appName)
+						{
+							$(this).find("MP").each(function()
+							{
+								if($(this).attr("name") + ";" + $(this).attr("seqNo") == MPName)
+								{
+									$(this).find("metric").each(function()
+									{
+										solXMetConfig = solXMetConfig + "<option value='" + $(this).attr("name") + ";" + $(this).attr("unit") + "'>" + $(this).attr("name") + "</option>";
+									});
+								}
+							});
+						}
+					});
+				}
+			});
+			solXMetConfig = solXMetConfig + "</select>";
+			return solXMetConfig;
+		}
+
+		// when default graph analysis button is clicked
+		function startDefaultGraphAnalysis()
+		{
+			var pIDObj = $(this).closest('p');
+
+			var metXGroup = $(pIDObj).find("#groupXName").val();
+			var metXTable = $(pIDObj).find("#appXName").val().split(';')[0] + "_" + $(pIDObj).find("#MPXName").val().split(';')[0];
+			var metXSeq = $(pIDObj).find("#MPXName").val().split(';')[1];
+			var metXName = $(pIDObj).find("#metXName").val().split(';')[0];
+			var metXUnit = $(pIDObj).find("#metXName").val().split(';')[1];
+
+			var metYGroup = $(pIDObj).find("#groupYName").val();
+			var metYTable = $(pIDObj).find("#appYName").val().split(';')[0] + "_" + $(pIDObj).find("#MPYName").val().split(';')[0];
+			var metYSeq = $(pIDObj).find("#MPYName").val().split(';')[1];
+			var metYName = $(pIDObj).find("#metYName").val().split(';')[0];
+			var metYUnit = $(pIDObj).find("#metYName").val().split(';')[1];
+
+			var dataArray = [];
+			$('#DBSelect').find("input:checkbox").each(function()
+			{
+				if($(this).attr('checked') == "checked")
+				{
+					var solDBFileName = $(this).val();
+					var labelText = solDBFileName.split('#')[0] + "[" + solDBFileName.split('#')[3] + " @ " + solDBFileName.split('#')[4] + "]"; 
+					var solDBPath = solDBFolder + "/" + solDBFileName;
+					var data = getGraphData(metXGroup,metXTable,metXSeq,metXName,metYGroup,metYTable,metYSeq,metYName,solDBPath);
+
+					if($(pIDObj).find('#label').attr('checked') == "checked")	// if label checkbox is pressed
+						dataArray.push({label: labelText, data: data });
+					else
+						dataArray.push({data: data });
+				}
+			});
+
+			// if AVG/STDEV checkbox from Graph Analysis is pressed
+			if($(pIDObj).find('#avgStdevDefault').attr('checked') == "checked")
+			{
+				var dataLength = [];
+				for(var i=0; i<dataArray.length; i++)
+					dataLength.push(dataArray[i]['data'].length);
+				var mindataLength = jQuery.minimum(dataLength);		// determine minimum array length from all DB List
+
+				var avgData = [];
+				var stdevTopData = [];
+				var stdevBottomDate = [];
+				for(var j=0; j<mindataLength; j++)
+				{
+					var tempXData = [];
+					var tempYData = [];
+					for(var i=0; i<dataArray.length; i++)
+					{
+						tempXData.push(parseFloat(dataArray[i]['data'][j][0]));	// create a column of single entry X date from all DB List
+						tempYData.push(parseFloat(dataArray[i]['data'][j][1]));	// create a column of single entry Y date from all DB List
+					}
+					var xMean = jQuery.mean(tempXData);
+					var yMean = jQuery.mean(tempYData);
+					var yStdev = jQuery.stdev(tempYData);
+					var yTopStdev = yMean + yStdev;
+					var yBottomSTDEV = yMean - yStdev;
+
+					avgData.push([xMean,yMean]);			// average data of selected DB List
+					stdevTopData.push([xMean,yTopStdev]);		// stdev top part data of selected DB List
+					stdevBottomDate.push([xMean,yBottomSTDEV]);	// stdev bottom part data of selected DB List
+				}
+
+				if($(pIDObj).find('#label').attr('checked') == "checked")	// if label checkbox is pressed
+				{
+					if($(pIDObj).find('#onlyAvgStdev').attr('checked') == "checked")
+						dataArray = [];		// remove previously loaded DB data arrays
+
+					// draw average curve and shade the stdev range
+					dataArray.push({id: "stdevUp", data: stdevTopData, lines: { lineWidth: 0} });
+					dataArray.push({label: "AVG_STDEV", id: "mean", data: avgData, lines: { lineWidth: 1, fill: 0.2 }, fillBetween: 'stdevUp', color: "rgb(255,50,50)" });
+					dataArray.push({data: stdevBottomDate, lines: { lineWidth: 0, fill: 0.2 }, fillBetween: 'mean', color: "rgb(255,50,50)" });
+				}
+				else
+				{
+					if($(pIDObj).find('#onlyAvgStdev').attr('checked') == "checked")
+						dataArray = [];		// remove previously loaded DB data arrays
+
+					// draw average curve and shade the stdev range
+					dataArray.push({id: "stdevUp", data: stdevTopData, lines: { lineWidth: 0} });
+					dataArray.push({id: "mean", data: avgData, lines: { lineWidth: 1, fill: 0.2 }, fillBetween: 'stdevUp', color: "rgb(255,50,50)"  });
+					dataArray.push({data: stdevBottomDate, lines: { lineWidth: 0, fill: 0.2 }, fillBetween: 'mean', color: "rgb(255,50,50)"  });
+				}
+			}
+
+			// Axis range calculation from selected DB List
+			var xAxisMin = 0;	var xAxisMax = 0;	var yAxisMin = 0;	var yAxisMax = 0
+			if(!$(pIDObj).find('#xAxisMin').length || !$(pIDObj).find('#xAxisMax').length || !$(pIDObj).find('#yAxisMin').length || !$(pIDObj).find('#yAxisMax').length)
+			{
+				var tempXMin = [];	var tempXMax = [];	var tempYMin = [];	var tempYMax = [];
+				for(var i=0; i<dataArray.length; i++)
+				{
+					var tempXData = [];
+					var tempYData = [];
+					for(var j=0; j<dataArray[i]['data'].length; j++)
+					{
+						tempXData.push(parseFloat(dataArray[i]['data'][j][0]));
+						tempYData.push(parseFloat(dataArray[i]['data'][j][1]));
+					}
+
+					tempXMin.push(jQuery.minimum(tempXData));
+					tempXMax.push(jQuery.maximum(tempXData));
+					tempYMin.push(jQuery.minimum(tempYData));
+					tempYMax.push(jQuery.maximum(tempYData));
+				}
+
+				xAxisMin = jQuery.minimum(tempXMin);
+				xAxisMax = jQuery.maximum(tempXMax);
+				yAxisMin = jQuery.minimum(tempYMin);
+				yAxisMax = jQuery.maximum(tempYMax);
+
+				var xAxisRangeText = "X-AXIS <input type='text' id='xAxisMin' value='" + xAxisMin + "' size='4'/>-<input type='text' value='" + xAxisMax + "' id='xAxisMax' size='4'/>";
+				var yAxisRangeText = "Y-AXIS <input type='text' id='yAxisMin' value='" + yAxisMin + "' size='4'/>-<input type='text' value='" + yAxisMax + "' id='yAxisMax' size='4'/>";
+				var axisResetText = "<button id='axisReset'><b>Reset</b></button>";
+
+				$(pIDObj).find('#axisRangeCont').html(xAxisRangeText + yAxisRangeText + axisResetText);
+				$(pIDObj).on('click','#axisReset',axisReset);
+			}
+			else
+			{
+				xAxisMin = $(pIDObj).find('#xAxisMin').val();
+				xAxisMax = $(pIDObj).find('#xAxisMax').val();
+				yAxisMin = $(pIDObj).find('#yAxisMin').val();
+				yAxisMax = $(pIDObj).find('#yAxisMax').val();
+			}
+
+			// draw the graph
+			$.plot($(pIDObj).find("#solFig"), dataArray, { xaxis: {min: xAxisMin, max: xAxisMax}, yaxis: {min: yAxisMin, max: yAxisMax} });
+
+			lastGraphAnalysis = "default";
+		}
+
+		// load custom SQL command for x-Axis
+		function loadXCustom()
+		{
+			var solXCustomConfig = "<td><b>SQL [x-axis]</b></td><td align='right'><textarea rows='3' cols='78' id='customXSQL'>SELECT (begin_interval+end_interval)/2 AS time from iperf_losses where oml_sender_id=(select id from _senders where name='Node2')</textarea></td>";
+			return solXCustomConfig;
+		}
+
+		// load custom SQL command for y-Axis
+		function loadYCustom()
+		{
+			var solYCustomConfig = "<td><b>SQL [y-axis]</b></td><td align='right'><textarea rows='3' cols='78' id='customYSQL'>SELECT total_datagrams from iperf_losses where oml_sender_id=(select id from _senders where name='Node2')</textarea></td>";
+			return solYCustomConfig;
+		}
+
+		// when custom graph analysis button is clicked
+		function startCustomGraphAnalysis()
+		{
+			var pIDObj = $(this).closest('p');
+			var customXSQL = $(pIDObj).find("#customXSQL").val();
+			var customYSQL = $(pIDObj).find("#customYSQL").val();
+
+			var dataArray = [];
+			$('#DBSelect').find("input:checkbox").each(function()
+			{
+				if($(this).attr('checked') == "checked")
+				{
+					var solDBFileName = $(this).val();
+					var labelText = solDBFileName.split('#')[0] + "[" + solDBFileName.split('#')[3] + " @ " + solDBFileName.split('#')[4] + "]"; 
+					var solDBPath = solDBFolder + "/" + solDBFileName;
+					var data = getCustomGraphData(customXSQL,customYSQL,solDBPath);
+
+					if($(pIDObj).find('#label').attr('checked') == "checked")
+						dataArray.push({label: labelText, data: data });
+					else
+						dataArray.push({data: data });
+				}
+			});
+
+			// if AVG/STDEV checkbox from Custom Graph Analysis is pressed
+			if($(pIDObj).find('#avgStdevCustom').attr('checked') == "checked")
+			{
+				var dataLength = [];
+				for(var i=0; i<dataArray.length; i++)
+					dataLength.push(dataArray[i]['data'].length);
+				var mindataLength = jQuery.minimum(dataLength);		// determine minimum array length from all DB List
+
+				var avgData = [];
+				var stdevTopData = [];
+				var stdevBottomDate = [];
+				for(var j=0; j<mindataLength; j++)
+				{
+					var tempXData = [];
+					var tempYData = [];
+					for(var i=0; i<dataArray.length; i++)
+					{
+						tempXData.push(parseFloat(dataArray[i]['data'][j][0]));	// create a column of single entry X date from all DB List
+						tempYData.push(parseFloat(dataArray[i]['data'][j][1]));	// create a column of single entry Y date from all DB List
+					}
+					var xMean = jQuery.mean(tempXData);
+					var yMean = jQuery.mean(tempYData);
+					var yStdev = jQuery.stdev(tempYData);
+					var yTopStdev = yMean + yStdev;
+					var yBottomSTDEV = yMean - yStdev;
+
+					avgData.push([xMean,yMean]);			// average data of selected DB List
+					stdevTopData.push([xMean,yTopStdev]);		// stdev top part data of selected DB List
+					stdevBottomDate.push([xMean,yBottomSTDEV]);	// stdev bottom part data of selected DB List
+				}
+
+				if($(pIDObj).find('#label').attr('checked') == "checked")	// if label checkbox is pressed
+				{
+					if($(pIDObj).find('#onlyAvgStdev').attr('checked') == "checked")
+						dataArray = [];		// remove previously loaded DB data arrays
+
+					// draw average curve and shade the stdev range
+					dataArray.push({id: "stdevUp", data: stdevTopData, lines: { lineWidth: 0} });
+					dataArray.push({label: "AVG_STDEV", id: "mean", data: avgData, lines: { lineWidth: 1, fill: 0.2 }, fillBetween: 'stdevUp', color: "rgb(255,50,50)" });
+					dataArray.push({data: stdevBottomDate, lines: { lineWidth: 0, fill: 0.2 }, fillBetween: 'mean', color: "rgb(255,50,50)" });
+				}
+				else
+				{
+					if($(pIDObj).find('#onlyAvgStdev').attr('checked') == "checked")
+						dataArray = [];		// remove previously loaded DB data arrays
+
+					// draw average curve and shade the stdev range
+					dataArray.push({id: "stdevUp", data: stdevTopData, lines: { lineWidth: 0} });
+					dataArray.push({id: "mean", data: avgData, lines: { lineWidth: 1, fill: 0.2 }, fillBetween: 'stdevUp', color: "rgb(255,50,50)"  });
+					dataArray.push({data: stdevBottomDate, lines: { lineWidth: 0, fill: 0.2 }, fillBetween: 'mean', color: "rgb(255,50,50)"  });
+				}
+			}
+
+			// Axis range calculation from selected DB List
+			var xAxisMin = 0;	var xAxisMax = 0;	var yAxisMin = 0;	var yAxisMax = 0
+			if(!$(pIDObj).find('#xAxisMin').length || !$(pIDObj).find('#xAxisMax').length || !$(pIDObj).find('#yAxisMin').length || !$(pIDObj).find('#yAxisMax').length)
+			{
+				var tempXMin = [];	var tempXMax = [];	var tempYMin = [];	var tempYMax = [];
+				for(var i=0; i<dataArray.length; i++)
+				{
+					var tempXData = [];
+					var tempYData = [];
+					for(var j=0; j<dataArray[i]['data'].length; j++)
+					{
+						tempXData.push(parseFloat(dataArray[i]['data'][j][0]));
+						tempYData.push(parseFloat(dataArray[i]['data'][j][1]));
+					}
+
+					tempXMin.push(jQuery.minimum(tempXData));
+					tempXMax.push(jQuery.maximum(tempXData));
+					tempYMin.push(jQuery.minimum(tempYData));
+					tempYMax.push(jQuery.maximum(tempYData));
+				}
+
+				xAxisMin = jQuery.minimum(tempXMin);
+				xAxisMax = jQuery.maximum(tempXMax);
+				yAxisMin = jQuery.minimum(tempYMin);
+				yAxisMax = jQuery.maximum(tempYMax);
+
+				var xAxisRangeText = "X-AXIS <input type='text' id='xAxisMin' value='" + xAxisMin + "' size='4'/>-<input type='text' value='" + xAxisMax + "' id='xAxisMax' size='4'/>";
+				var yAxisRangeText = "Y-AXIS <input type='text' id='yAxisMin' value='" + yAxisMin + "' size='4'/>-<input type='text' value='" + yAxisMax + "' id='yAxisMax' size='4'/>";
+				var axisResetText = "<button id='axisReset'><b>Reset</b></button>";
+
+				$(pIDObj).find('#axisRangeCont').html(xAxisRangeText + yAxisRangeText + axisResetText);
+				$(pIDObj).on('click','#axisReset',axisReset);
+			}
+			else
+			{
+				xAxisMin = $(pIDObj).find('#xAxisMin').val();
+				xAxisMax = $(pIDObj).find('#xAxisMax').val();
+				yAxisMin = $(pIDObj).find('#yAxisMin').val();
+				yAxisMax = $(pIDObj).find('#yAxisMax').val();
+			}
+
+			// draw the graph
+			$.plot($(pIDObj).find("#solFig"), dataArray, { xaxis: {min: xAxisMin, max: xAxisMax}, yaxis: {min: yAxisMin, max: yAxisMax} });
+
+			lastGraphAnalysis = "custom";
+		}
+
+		// get default graph data array for selected DB
+		function getGraphData(metXGroup,metXTable,metXSeq,metXName,metYGroup,metYTable,metYSeq,metYName,solDBPath)
+		{
+			var data = [];
+			$.ajax
+			({
+				async:false,
+				dataType: "xml",
+				type: "POST",
+				url:"event_handler.php?event=graphAnalysis" + "&metXGroup=" + metXGroup + "&metXTable=" + metXTable + "&metXSeq=" + metXSeq + "&metXName=" + metXName + "&metYGroup=" + metYGroup + "&metYTable=" + metYTable + "&metYSeq=" + metYSeq + "&metYName=" + metYName,
+				data: {solDBPath : solDBPath},
+				success:function(result)
+				{
+					$(result).find("value").each(function()
+					{
+						data.push([$(this).attr('x'), $(this).attr('y')]);
+					});
+				}
+			});
+			return data;
+		}
+
+		// get custom graph data array for selected DB
+		function getCustomGraphData(customXSQL,customYSQL,solDBPath)
+		{
+			var data = [];
+			$.ajax
+			({
+				async:false,
+				dataType: "xml",
+				type: "POST",
+				url:"event_handler.php?event=customGraphAnalysis",
+				data: {customXSQL: customXSQL, customYSQL: customYSQL, solDBPath: solDBPath},
+				success:function(result)
+				{
+					$(result).find("value").each(function()
+					{
+						data.push([$(this).attr('x'), $(this).attr('y')]);
+					});
+				}
+			});
+			return data;
+		}
+
+		// reset the xy-axis to default position of previously activated graph analysis [default/custom]
+		function axisReset(event)
+		{
+			var pIDObj = $(this).closest('p');
+			$(pIDObj).find('#axisRangeCont').html("");
+			if(lastGraphAnalysis == "default")
+				$(pIDObj).find('#startDefaultGraphAnalysis').trigger('click');
+			else if(lastGraphAnalysis == "custom")
+				$(pIDObj).find('#startCustomGraphAnalysis').trigger('click');
+		}
+
+		// add a score handling score block
+		function addScore()
+		{
+			var pID = randomString();
+			$('#newScore').attr('id',pID);
+			var pIDObj = $('#'+pID).closest('p');
+			$('<p id="newScore" align="center"></p>').insertAfter($(pIDObj));
+
+			var scoreText = "<table><tr><td id='delScore' align='right'><button><b>Delete</b></button></td></tr>";
+			scoreText = scoreText + "<tr><td style='border:1px solid black;'><table>";
+			scoreText = scoreText + "<tr><td colspan='3'><b><u>VARIABLE DEFINITION</u></b></td></tr>";
+			scoreText = scoreText + "<tr><td><u>Name</u></td><td align='center'><u>SQL command</u></td><td align='center'><u>Action</u></td></tr>";
+			scoreText = scoreText + "<tr id='newVar'></tr>";
+			scoreText = scoreText + "<tr><td colspan='3'><button id='addVar'><b>ADD Variable</b></button></td></tr>";
+			scoreText = scoreText + "<tr><td colspan='3'><hr/></td></tr>";
+			scoreText = scoreText + "<tr><td colspan='3'><table><tr><td>Score = </td><td><textarea rows='2' cols='60' id='evalString'>10*(x1-x2)/x1</textarea></td><td><button id='calcScore'><img src='figures/cross.png' title='calculate score'></button></td></tr></table></td></tr>";
+			scoreText = scoreText + "<tr><td colspan='3'><hr/></td></tr>";
+			scoreText = scoreText + "<tr><td colspan='3'>" + arrangeSolDBList(objSolDBList) + "</td></tr>";
+			scoreText = scoreText + "</table></td></tr></table>";
+
+			$(pIDObj).html(scoreText);
+		
+			$(pIDObj).on('click','#delScore',delScore);
+			$(pIDObj).on('click','#addVar', addVar);
+			$(pIDObj).on('click','#calcScore', calcScore);
+		}
+
+		// add variables within defined score block (aka metrics)
+		function addVar(event)
+		{
+			var pIDObj = $(this).closest('p');
+
+			var trID = randomString();
+			$(pIDObj).find('#newVar').attr('id',trID);
+			var trIDObj = $(pIDObj).find('#'+trID).closest('tr');
+			$('<tr id="newVar"></tr>').insertAfter($(trIDObj));
+
+			// avoid duplicate variable names
+			var varID = $(pIDObj).find('#varName').length + 1;
+			if(varID != 1)
+			{
+				var varArray = []
+				$(pIDObj).find('#varName').each(function()
+				{
+					varArray.push(parseInt($(this).text().substring(1,$(this).text().length)));
+				});
+				varArray.sort(function(a,b){return a-b});
+
+				for(var i=0; i < varArray.length; i++)
+				{
+					if(varArray[i] != i+1 )
+					{
+						varID = i+1;
+						break;
+					}
+				}
+			}
+
+			var varText = "<td id='varName'><b>x" + varID + "</b></td>";
+			varText = varText + "<td><textarea rows='2' cols='80' id='varSQL'>SELECT sum(total_datagrams) FROM iperf_losses where oml_sender_id=(select id from _senders where name='Node2')</textarea></td>";
+			varText = varText + "<td id='delVar' align='center'><img src='figures/Delete.png' title='delete variable'></td>";
+			$(trIDObj).html(varText);
+
+			$(trIDObj).on('click','#delVar', delVar);
+		}
+
+		// calculate score by combining evaluate string and defined variables
+		function calcScore(event)
+		{
+			var pIDObj = $(this).closest('p');
+			$(pIDObj).find("input:checkbox").each(function()
+			{
+				if($(this).attr('checked') == "checked")
+				{
+					var solDBFileName = $(this).val();
+					var solDBPath = solDBFolder + "/" + solDBFileName;
+					var varValueArray = [];
+					$(pIDObj).find('#varSQL').each(function()
+					{
+						var varName = $(this).closest('tr').find('#varName').text();
+						var varSQL = $(this).val();
+
+						varValueArray.push([varName,getVarValue(varSQL,solDBPath)]);
+					});
+
+					// replace variable name by value inside evaluate string
+					var evalString = $(pIDObj).find('#evalString').val();
+					for(var i=0; i<varValueArray.length; i++)
+						while(evalString.indexOf(varValueArray[i][0])!== -1)
+							evalString = evalString.replace(varValueArray[i][0],varValueArray[i][1]);
+
+					var score = 0.0;
+					try
+					{
+						score = eval(evalString);		// evaluate score expression
+
+						// Format score to at most 5 digits before and after decimal point
+						if(score >= 100000)
+							score = "Infinity";
+						else if(score.toString().indexOf('.') != -1)
+							if(score.toString().split('.')[1].length > 5)
+								score = score.toFixed(5);
+					}
+					catch(e)
+					{
+						score = e.message;			// through error message
+					}
+					$(this).closest('tr').find('#scoreVal').html("<b>= " + score + "</b>");
+				}
+			});
+		}
+
+		// get the variable value for the given SQL command and DB
+		function getVarValue(varSQL,solDBPath)
+		{
+			var varValue = 0;
+			$.ajax
+			({
+				async:false,
+				type: "POST",
+				url:"event_handler.php?event=varValue",
+				data: {solDBPath : solDBPath, varSQL : varSQL},
+				success:function(result)
+				{
+					varValue = result;
+				}
+			});
+			return varValue;
+		}
+
+		// delete graph block
+		function delGraph(event)
+		{
+			var pIDObj = $(this).closest('p');
+			$(pIDObj).remove();
+		}
+
+		// delete score block
+		function delScore(event)
+		{
+			var pIDObj = $(this).closest('p');
+			$(pIDObj).remove();
+		}
+
+		// delete variable for selected score block
+		function delVar(event)
+		{
+			var trIDObj = $(this).closest('tr');
+			$(trIDObj).remove();
+		}
+
+		// generate random string of 8 characters
+		function randomString()
+		{
+			var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+			var string_length = 8;
+			var randomstring = '';
+			for (var i=0; i<string_length; i++)
+			{
+				var rnum = Math.floor(Math.random() * chars.length);
+				randomstring += chars.substring(rnum,rnum+1);
+			}
+			return randomstring;
+		}
+	});
+	</script>
+</head>
+<body>
+	<h2 align="center">Result Analysis</h2>
+	<div id="perMetCompcont">
+		<p id="newGraph" align="center"></p>
+		<p id="addGraph" align="center"><button type="button"><b>ADD Graph</b></button></p>
+	</div>
+	<hr />
+
+	<h2 align="center">Score Calculation</h2>
+	<div id="scorecont">
+		<p id="newScore" align="center"></p>
+	</div>
+	<p align="center" id="addScore"><button><b>ADD Score</b></button></p>
+</body>
+

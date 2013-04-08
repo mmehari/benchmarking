@@ -1,0 +1,45 @@
+defApplication('iperf', 'iperf'){|app|
+	app.path = File.join(File.dirname(__FILE__), 'iperf')
+	app.appPackage = 'iperf.tar'
+
+	app.version('2.0.5')
+	app.shortDescription = 'Simple iPerf wrapper with OML logging'
+	app.description = "Iperf is a traffic generator and bandwidth measurement tool. It provides generators producing various forms of packet streams and port for sending these packets via various transports, such as TCP and UDP."
+
+	app.defProperty('interval', 'pause n seconds between periodic bandwidth reports','i', {:type => :string, :dynamic => false})
+	app.defProperty('len', 'set length read/write buffer to n (default 8 KB)','l', {:type => :string, :dynamic => false})
+	app.defProperty('port', 'set server port to listen on/connect to to n (default 5001)','p', {:type => :integer, :dynamic => false})
+	app.defProperty('udp', 'use UDP rather than TCP','u', {:order => 2, :type => :boolean, :dynamic => false})
+	app.defProperty('window', 'TCP window size (socket buffer size)','w', {:type => :integer, :dynamic => false})
+	app.defProperty('reportstyle', 'C or c for CSV report, O or o for OML','y', {:type => :string, :dynamic => false})
+	app.defProperty('server', 'run in server mode','s', {:type => :boolean, :dynamic => false})
+	app.defProperty('bandwidth', 'set target bandwidth to n bits/sec (default 1 Mbit/sec)','b', {:type => :string, :dynamic => false})
+	app.defProperty('client', 'run in client mode, connecting to <host>','c', {:order => 1, :type => :string, :dynamic => false})
+	app.defProperty('time', 'time in seconds to transmit for (default 10 secs)','t', {:type => :integer, :dynamic => false})
+
+	app.defMeasurement('transfer'){ |mp|
+		mp.defMetric('pid', :long, 'Main process identifier')
+		mp.defMetric('connection_id', :long, 'Connection identifier (socket)')
+		mp.defMetric('begin_interval', :float, 'Start of the averaging interval (Iperf timestamp)')
+		mp.defMetric('end_interval', :float, 'End of the averaging interval (Iperf timestamp)')
+		mp.defMetric('size', :long, 'Amount of transmitted data [Bytes]')
+	}
+
+	app.defMeasurement('jitter'){ |mp|
+		mp.defMetric('pid', :long, 'Main process identifier')
+		mp.defMetric('connection_id', :long, 'Connection identifier (socket)')
+		mp.defMetric('begin_interval', :float, 'Start of the averaging interval (Iperf timestamp)')
+		mp.defMetric('end_interval', :float, 'End of the averaging interval (Iperf timestamp)')
+		mp.defMetric('jitter', :float, 'Average jitter [ms]')
+	}
+
+	app.defMeasurement('losses'){ |mp|
+		mp.defMetric('pid', :long, 'Main process identifier')
+		mp.defMetric('connection_id', :long, 'Connection identifier (socket)')
+		mp.defMetric('begin_interval', :float, 'Start of the averaging interval (Iperf timestamp)')
+		mp.defMetric('end_interval', :float, 'End of the averaging interval (Iperf timestamp)')
+		mp.defMetric('total_datagrams', :long, 'Total number of datagrams')	
+		mp.defMetric('lost_datagrams', :long, 'Number of lost datagrams')	
+	}
+}
+

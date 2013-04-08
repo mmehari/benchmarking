@@ -1,0 +1,126 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.alphanumeric.pack.js"></script>
+	<script type="text/javascript">
+
+	var strXML="";	var strAppConfig = "";	var strNodeConfig = "";	var strTLConfig = "";
+
+	$(document).ready(function()
+	{
+		$('#duration').numeric();
+		$(this).on('click','#previous', previous);
+		$(this).on('click','#next', next);
+		$(this).on('click','#nodePage', nodePage);
+		loadConfig();
+	});
+
+	// This function is called when the page is started or refreshed
+	function loadConfig()
+	{
+		strExpDscr = window.name;
+		objExpDscr = $.parseXML(strExpDscr);
+
+		strXML="";	strExpAbst = objToStrXML($(objExpDscr).find("experimentAbstract"));
+		strXML="";	strAppConfig = objToStrXML($(objExpDscr).find("appConfiguration"));
+		strXML="";	strNodeConfig = objToStrXML($(objExpDscr).find("nodeConfiguration"));
+		strXML="";	strTLConfig = objToStrXML($(objExpDscr).find("TLConfiguration"));
+		
+		if(strExpAbst.length > 0)
+		{
+			objExpAbst = $.parseXML(strExpAbst);
+
+			var title = $(objExpAbst).find("title").text();
+			var author = $(objExpAbst).find("author").text();
+			var contact = $(objExpAbst).find("contactInformation").text();
+			var summary = $(objExpAbst).find("experimentSummary").text();
+			var duration = $(objExpAbst).find("duration").text();
+
+			$(document).find("#title").val(title);
+			$(document).find("#author").val(author);
+			$(document).find("#contact").val(contact);
+			$(document).find("#summary").val(summary);
+			$(document).find("#duration").val(duration);
+		}
+	}
+
+	// function to convert XML DOM object to string representation
+	function objToStrXML(obj)
+	{
+		strXML = strXML + "<" + $(obj)[0].tagName;
+		$(obj.attributes).each(function()
+		{
+			strXML = strXML + ' ' + this.nodeName + '="' + this.nodeValue + '"';
+		});
+		strXML = strXML + ">";
+		
+		if($(obj).children().length == "0")
+			strXML = strXML + $(obj).text();
+		else
+			$(obj).children().each(function()
+			{
+				objToStrXML(this);
+			});
+		
+		strXML = strXML + "</" + $(obj)[0].tagName + ">";
+
+		return strXML;		
+	}
+
+	function previous(event)
+	{
+		window.name = "<experimentDescription>" + saveExpAbst() + strAppConfig + strNodeConfig + strTLConfig + "</experimentDescription>";
+		window.location = "exprDef.html";
+	}
+
+	function next(event)
+	{
+		window.name = "<experimentDescription>" + saveExpAbst() + strAppConfig + strNodeConfig + strTLConfig + "</experimentDescription>";
+		window.location = "application.html";
+	}
+
+	function nodePage(event)
+	{
+		window.name = "<experimentDescription>" + saveExpAbst() + strAppConfig + strNodeConfig + strTLConfig + "</experimentDescription>";
+		window.location = "node.html";
+	}
+
+	// function to save experiment abstract before leaving the page
+	function saveExpAbst()
+	{
+		var strExpAbst = "<experimentAbstract>";
+		strExpAbst = strExpAbst + "<title>" + $(document).find("#title").val() + "</title>";
+		strExpAbst = strExpAbst + "<author>" + $(document).find("#author").val() + "</author>";
+		strExpAbst = strExpAbst + "<contactInformation>" + $(document).find("#contact").val() + "</contactInformation>";
+		strExpAbst = strExpAbst + "<experimentSummary>" + $(document).find("#summary").val() + "</experimentSummary>";
+		strExpAbst = strExpAbst + "<duration>" + $(document).find("#duration").val() + "</duration>";
+		strExpAbst = strExpAbst + "</experimentAbstract>";
+
+		return strExpAbst;
+	}
+	</script>
+</head>
+<body>
+	<table>
+	<tr>
+		<td><b><a href='#' style='text-decoration: none' title='define your experiment'>Experiment Abstract</a></b></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><a href='#' style='text-decoration: none' id="next" title='Add applications to your experiment'>Applications included in experiment</a></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><a href='#' style='text-decoration: none' id="nodePage" title='Select nodes to run your experiment applications'>Nodes included in experiment</a></td>
+	</tr>
+	<tr><td colspan=5><hr/></td></tr>
+	</table>
+	<h3>Experiment Abstract</h3>
+	<p>Title : <input type="text" size="60" id="title"></p>
+	<p>Author : <input type="text" id="author"></p>
+	<p>Contact Information : <input type="text" size="60" id="contact"></p>
+	<p>Experiment summary :<br><textarea rows="7" cols="50" id="summary"></textarea></p>
+	<p>Experiment duration (sec) : <input type="text" size="3" id="duration"></p>
+	<p id="footer"><button id="previous"><img src="figures/previous.png"/></button>
+			<button id="next"><img src="figures/next.png"/></button></p>
+</body>
+</html>

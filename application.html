@@ -1,0 +1,866 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.form.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.alphanumeric.pack.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.treeview.js"></script>
+	<style type='text/css'>
+		#inputFormat, #inputs { padding: 0; margin: 0; list-style: none; }
+		#inputFormat .hover { color: red; cursor: pointer; }
+		#inputFormat span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#inputFormat li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#inputs li { background: url(figures/treeview-line.gif) 0 0 no-repeat; padding: 0px 0 3px 20px; }
+		#inputFormat, #inputs { padding: 0; margin: 0; list-style: none; }
+		
+		#outputFormat, #outputs { padding: 0; margin: 0; list-style: none; }
+		#outputFormat .hover { color: red; cursor: pointer; }
+		#outputFormat span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#outputFormat li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#outputs li { background: url(figures/treeview-line.gif) 0 0 no-repeat; padding: 0px 0 3px 20px; }
+		
+		#sensorPar, #parameters { padding: 0; margin: 0; list-style: none; }
+		#sensorPar .hover { color: red; cursor: pointer; }
+		#sensorPar span.folder { background: url(figures/folder.gif) 0 0 no-repeat;  padding: 0px 20px; }
+		#sensorPar li.expandable span.folder { background: url(figures/folder-closed.gif) 0 0 no-repeat; }
+		#parameters li { background: url(figures/treeview-line.gif) 0 0 no-repeat; padding: 0px 0 3px 20px; }
+
+		ol { padding: 0; margin: 0; }
+	</style>
+	<script type='text/javascript'>
+
+	var strXML="";	var strExprAbst = "";	var strNodeConfig = "";	var strTLconfig = "";
+
+	$(document).ready(function()
+	{
+		$(this).on('click','#addAPP', newAPP);
+		$(this).on('click','#next', next);
+		$(this).on('click','#previous', previous);
+		loadConfig();
+	});
+
+	// This function is called when the page is started or refreshed
+	function loadConfig()
+	{
+		strExpDscr = window.name;
+		objExpDscr = $.parseXML(strExpDscr);
+
+		strXML="";	strExprAbst = objToStrXML($(objExpDscr).find("experimentAbstract"));
+		strXML="";	strAppConfig = objToStrXML($(objExpDscr).find("appConfiguration"));
+		strXML="";	strNodeConfig = objToStrXML($(objExpDscr).find("nodeConfiguration"));
+		strXML="";	strTLconfig = objToStrXML($(objExpDscr).find("TLConfiguration"));
+		
+		if(strAppConfig.length > 0)
+		{
+			objAppConfig = $.parseXML(strAppConfig);
+
+			$(objAppConfig).find("app").each(function()
+			{
+				newAPP("waitServer");
+				pIDObj = $(document).find('#newAPP').prev();
+				appType = $(this).attr('type');
+			
+				if(appType == "default")
+				{
+					platName = $(this).attr('platform');
+				
+					platform(pIDObj,platName);
+					$(pIDObj).find('#platform').val(platName);
+				
+					appName = $(this).attr('name');
+
+					application(pIDObj,platName, appName);
+					$(pIDObj).find('#application').val(appName);
+				}
+				else if(appType == "custom")
+				{
+					platName = $(this).attr('platform');
+					app = $(this).attr('name');
+					version = $(this).attr('version');
+					description = $(this).find('description').text();
+				
+					custom(pIDObj,"syncMod");
+
+					$(pIDObj).find('#platCustom').val(platName);
+					$.ajax
+					({
+						async: false,
+						url:"event_handler.php?event=checkFile" + "&application=" + app,
+						context: this,
+						success:function(result)
+						{
+							if(result == "success")
+							{
+								$(pIDObj).find('#loadFile').html("<td>Application</td><td id='appCustom'><b>" + app + "</b></td>");
+
+								if(platName == "x86Linux")
+								{
+									$(pIDObj).find('#inputConfig').html("<table><tr><td colspan='4'><hr /></td></tr><tr><td colspan='4'><b>Input Format</b></td></tr><tr><td>Mnemonic</td><td>Description</td><td>Type</td><td>Action</td></tr><tr id='addInput'></tr><tr id='addInputButton'><td colspan='4'><button type='button'>Add Input</button></td></tr></table>");
+									$(this).find("inputFormat").find("parameter").each(function()
+									{
+										inputName = $(this).attr("name");
+										inputDscr = $(this).attr("dscr");
+										inputType = $(this).attr("type");
+
+										addInput(pIDObj.find("#addInput"),"loadMod");
+										trIDObj = $(pIDObj).find("#addInput").prev();
+
+										$(trIDObj).find('#inputName').val(inputName);
+										$(trIDObj).find('#inputDscr').val(inputDscr);
+										$(trIDObj).find('#inputType').val(inputType);
+									});
+
+									$(pIDObj).find('#outputConfig').html("<table><tr><td><hr /></td></tr><tr><td><b>Output Format</b></td></tr><tr id='addMP' class='MP'></tr><tr id='addMPButton'><td><button type='button'>Add MP</button></td></tr></table>");
+									$(this).find("outputFormat").find("mp").each(function()
+									{
+										mpName = $(this).attr("name");
+
+										addMP(pIDObj.find("#addMP"),"loadMod");
+										trIDMPObj = pIDObj.find("#addMP").prev();
+
+										$(trIDMPObj).find('#MPName').val(mpName);
+
+										$(this).find("parameter").each(function()
+										{
+											outputName = $(this).attr("name");
+											outputDscr = $(this).attr("dscr");
+											outputType = $(this).attr("type");
+											outputUnit = $(this).attr("unit");
+
+											addOutput(trIDMPObj.find("#addOutput"),"loadMod");
+											trIDObj = trIDMPObj.find("#addOutput").prev();
+
+											$(trIDObj).find('#outputName').val(outputName);
+											$(trIDObj).find('#outputDscr').val(outputDscr);
+											$(trIDObj).find('#outputType').val(outputType);
+											$(trIDObj).find('#outputUnit').val(outputUnit);
+										});
+									});
+								}
+								else if(platName == "tinyOS")
+								{
+									$.ajax
+									({
+										async:false,
+										url:"event_handler.php?event=sensorPar" + "&appType=custom" + "&application=" + app,
+										success:function(result)
+										{
+											$(pIDObj).find('#inputConfig').html(result);
+											$(pIDObj).find("#sensorPar").treeview();
+										}
+									});
+								}
+							}
+						}
+					});
+					$(pIDObj).find('#verCustom').val(version);
+					$(pIDObj).find('#desrCustom').val(description);
+				}
+			});
+		}
+	}
+	
+	// This function is called when the button "Add Application" is pressed
+	function newAPP(serverWait)
+	{
+		$.ajax
+		({
+			async: (serverWait!="waitServer")?true:false,
+			url:"event_handler.php?event=newAPP",
+			success:function(result)
+			{
+				pID=randomString();
+				$('#newAPP').attr('id',pID);
+				
+				pIDObj = $('#'+pID).closest('p');
+				$(pIDObj).html(result);
+				$('<p id="newAPP"></p>').insertAfter($(pIDObj));
+				
+				$(pIDObj).on('click','#custom',custom);
+				$(pIDObj).on('click','#default',Default);
+				$(pIDObj).on('click','#delete',Delete);
+				$(pIDObj).on('change','#platform',platform);
+				$(pIDObj).on('change','#application',application);
+				$(pIDObj).on('click','#saveParam',saveParam);
+				$(pIDObj).on('click','#addInputButton',addInput);
+				$(pIDObj).on('click','#addOutputButton',addOutput);
+				$(pIDObj).on('click','#addMPButton',addMP);
+
+				var platName = $(pIDObj).find('#platform').val();
+				var appName = $(pIDObj).find('#application').val();
+
+				displayInput(pIDObj,platName,appName);
+				displayOutput(pIDObj,platName,appName);
+			}
+		});
+	}
+
+	// This function is called when the button "Custom" is pressed
+	function custom(pIDObj,serverWait)
+	{
+		if(typeof serverWait == "undefined")
+		{
+			pIDObj = $(this).closest('p');
+			serverWait = true;
+		}
+		else
+		{
+			serverWait = false;
+		}
+		$.ajax
+		({
+			async: serverWait,
+			url:"event_handler.php?event=custom",
+			success:function(result)
+			{
+				$(pIDObj).html(result);
+				
+				$(pIDObj).on('change','#platCustom',platCustom);
+				$(pIDObj).find('#binAPPForm').ajaxForm
+				({
+					success: function (result)
+					{
+						if(result != "failure" && result != "")
+						{
+							$(pIDObj).find('#loadFile').html("<td>Application</td><td id='appCustom'><b>" + result + "</b></td>");
+							$(pIDObj).find('#inputConfig').html("<table><tr><td colspan='4'><hr /></td></tr><tr><td colspan='4'><b>Input Format</b></td></tr><tr><td>Mnemonic</td><td>Description</td><td>Argument type</td><td>Action</td></tr><tr id='addInput'></tr><tr id='addInputButton'><td colspan='4'><button type='button'>Add Input</button></td></tr></table>");
+							$(pIDObj).find('#outputConfig').html("<table><tr><td><hr /></td></tr><tr><td><b>Output Format</b></td></tr><tr id='addMP' class='MP'></tr><tr id='addMPButton'><td><button type='button'>Add MP</button></td></tr></table>");
+						}
+					}
+				});
+				$(pIDObj).find('#verCustom').numeric({allow:"."});
+			}
+		});
+	}
+
+	// This function is called when the button "Default" is pressed
+	function Default(event)
+	{
+		pIDObj = $(this).closest('p');
+		$.ajax
+		({
+			url:"event_handler.php?event=default",
+			success:function(result)
+			{
+				$(pIDObj).html(result);
+
+				var platName = $(pIDObj).find('#platform').val();
+				var appName = $(pIDObj).find('#application').val();
+				displayInput(pIDObj,platName,appName);
+				displayOutput(pIDObj,platName,appName);
+			}
+		});
+	}
+
+	// This function is called when a different platform is selected for default applications
+	function platform(pIDObj,platName)
+	{
+		if(typeof platName == "undefined")
+		{
+			var pIDObj = $(this).closest('p');
+			var platName =$(this).val();
+			var serverWait = true;
+		}
+		else
+		{
+			var serverWait = false;
+		}
+		
+		$.ajax
+		({
+			async: serverWait,
+			url:"event_handler.php?event=platform" + "&platform=" + platName,
+			success:function(result)
+			{
+				var string=result.split("መለያ");
+				$(pIDObj).find('#application').html(string[0]);
+				$(pIDObj).find('#version').val(string[1]);
+				$(pIDObj).find('#description').val(string[2]);
+
+				if(platName == "x86Linux")
+				{
+					var appName = $(pIDObj).find('#application').val();
+					displayInput(pIDObj,platName,appName);
+					displayOutput(pIDObj,platName,appName);
+				}
+				else if(platName == "tinyOS")
+				{
+					var appName = $(pIDObj).find('#application').val();
+					$.ajax
+					({
+						async:false,
+						url:"event_handler.php?event=sensorPar" + "&appType=default" + "&application=" + appName,
+						success:function(result)
+						{
+							$(pIDObj).find('#inputConfig').html(result);
+							$(pIDObj).find("#sensorPar").treeview();
+						}
+					});
+		        		displayOutput(pIDObj,platName,appName);
+				}
+			}
+		});
+	}
+
+	// This function is called when a different platform is selected for custom applications
+	function platCustom(event)
+	{
+		pIDObj = $(this).closest('p');
+		platName =$(this).val();
+		
+		$.ajax
+		({
+			url:"event_handler.php?event=platCustom",
+			success:function(result)
+			{
+				$(pIDObj).find('#loadFile').html(result);
+				$(pIDObj).find('#inputConfig').html("");
+				$(pIDObj).find('#outputConfig').html("");
+				
+				$(pIDObj).find('#binAPPForm').ajaxForm
+				({
+					success: function (result)
+					{
+						if(result != "failure")
+						{
+							$(pIDObj).find('#loadFile').html("<td>Application</td><td id='appCustom'><b>" + result + "</b></td>");
+							if(platName == "x86Linux")
+							{
+								$(pIDObj).find('#inputConfig').html("<table><tr><td colspan='4'><hr /></td></tr><tr><td colspan='4'><b>Input Format</b></td></tr><tr><td>Mnemonic</td><td>Description</td><td>Type</td><td>Action</td></tr><tr id='addInput'></tr><tr id='addInputButton'><td colspan='4'><button type='button'>Add Input</button></td></tr></table>");
+								$(pIDObj).find('#outputConfig').html("<table><tr><td><hr /></td></tr><tr><td><b>Output Format</b></td></tr><tr id='addMP' class='MP'></tr><tr id='addMPButton'><td><button type='button'>Add MP</button></td></tr></table>");
+							}
+							else if(platName == "tinyOS")
+							{
+								$.ajax
+								({
+									async:false,
+									url:"event_handler.php?event=sensorPar" + "&appType=custom" + "&application=" + result,
+									success:function(result)
+									{
+										$(pIDObj).find('#inputConfig').html(result);
+										$(pIDObj).find("#sensorPar").treeview();
+									}
+								});
+							}
+						}
+					}
+				});
+			}
+		});
+	}
+
+	// This function is called when a different application is selected for default applications
+	function application(pIDObj,platName,appName)
+	{
+		if(typeof platName == "undefined")
+		{
+			var pIDObj = $(this).closest('p');
+			var platName = pIDObj.find('#platform').val();
+			var appName = $(this).val();
+			var serverWait = true;
+		}
+		else
+		{
+			var serverWait = false;
+		}
+
+		$.ajax
+		({
+			async: serverWait,
+			url:"event_handler.php?event=application" + "&platform=" + platName + "&application=" + appName,
+			success:function(result)
+			{
+				var string=result.split("መለያ");
+				$(pIDObj).find('#version').val(string[0]);
+				$(pIDObj).find('#description').val(string[1]);
+
+				if(platName == "x86Linux")
+				{
+					displayInput(pIDObj,platName,appName);
+					displayOutput(pIDObj,platName,appName);
+				}
+				else if(platName == "tinyOS")
+				{
+					$.ajax
+					({
+						async:false,
+						url:"event_handler.php?event=sensorPar" + "&appType=default" + "&application=" + appName,
+						success:function(result)
+						{
+							$(pIDObj).find('#inputConfig').html(result);
+							$(pIDObj).find("#sensorPar").treeview();
+						}
+					});
+					displayOutput(pIDObj,platName,appName);
+				}
+			}
+		});
+	}
+
+	// This function displays input format of selected default application
+	function displayInput(pIDObj,platName,appName)
+	{
+		$.ajax
+		({
+			async: false,
+			url:"event_handler.php?event=inputFormat" + "&platform=" + platName + "&application=" + appName,
+			success:function(result)
+			{
+				var inputHeaderText = "<hr /><ul id='inputFormat'><li class='closed'><span class='folder'><b>Input Format</b></span><ul id='inputs'><li><table><tr id='formatHeader'><td><b>Mnemonic</b></td><td><b>Description</b></td><td><b>Argument type</b></td></tr>";
+
+				objInputConfig = $.parseXML(result);
+				var inputFormat = "";
+				$(objInputConfig).find("inputFormat").find("parameter").each(function()
+				{
+					inputFormat = inputFormat + "<tr><td>" + $(this).attr('name') + "</td>";
+					inputFormat = inputFormat + "<td>" + $(this).attr('dscr') + "</td>";
+					inputFormat = inputFormat + "<td>" + $(this).attr('type') + "</td></tr>";
+				});
+				inputFormat = inputFormat + "</table></li></ul></li></ul>";
+				
+				$(pIDObj).find('#inputConfig').html(inputHeaderText + inputFormat);
+				$(pIDObj).find("#inputFormat").treeview();
+			}
+		});
+	}
+
+	// This function displays output format of selected default application
+	function displayOutput(pIDObj,platName,appName)
+	{
+		$.ajax
+		({
+			async: false,
+			url:"event_handler.php?event=outputFormat" + "&platform=" + platName + "&application=" + appName,
+			success:function(result)
+			{
+				var outputHeaderText = "<ul id='outputFormat'><li class='closed'><span class='folder'><b>Output Format</b></span><ul id='outputs'><li>";
+
+				objOutputConfig = $.parseXML(result);
+				var outputFormat = "";
+				$(objOutputConfig).find("outputFormat").find("mp").each(function()
+				{
+					outputFormat = outputFormat + "<ol><table><tr id='MPHeader'><td><b>Measurment Point:</b></td><td><u>" + $(this).attr('name') + "</u></td></tr><tr id='formatHeader'><td><u>Field</u></td><td><u>Description</u></td><td><u>Type</u></td><td><u>Unit</u></td></tr>";
+					$(this).find("parameter").each(function()
+					{
+						outputFormat = outputFormat + "<tr><td>" + $(this).attr('name') + "</td>";
+						outputFormat = outputFormat + "<td>" + $(this).attr('dscr') + "</td>";
+						outputFormat = outputFormat + "<td>" + $(this).attr('type') + "</td>";
+						outputFormat = outputFormat + "<td>" + $(this).attr('unit') + "</td></tr>";
+					});
+					outputFormat = outputFormat + "</table></ol>";
+				});
+				outputFormat = outputFormat + "</li></ul></li></ul>";
+				
+				$(pIDObj).find('#outputConfig').html(outputHeaderText + outputFormat);
+				$(pIDObj).find("#outputFormat").treeview();
+			}
+		});
+	}
+
+	// This function is called when the button "Add Input" is pressed for custom applications
+	function addInput(objAddInput,state)
+	{
+		trID=randomString();
+		if(typeof state == "undefined")
+			$(this).parent().find('#addInput').attr('id',trID);
+		else
+			$(objAddInput).attr('id',trID);
+		trIDObj = $('#'+trID).closest('tr');
+		
+		inputNameText = "<td><input type='text' size='7' id='inputName'></td>";
+		inputDscrText = "<td><input type='text' size='20' id='inputDscr'></td>";
+		inputTypeText = "<td><select id='inputType'><option value='string'>string</option><option value='bool'>boolean</option><option value='int'>integer</option><option value='null'>NULL</option></select></td>";
+		actionText = "<td id='delInput' align='center'><img src='figures/Delete.png' title='delete input format' /></td>";
+
+		trIDObj = $('#'+trID).closest('tr');
+		$(trIDObj).html(inputNameText + inputDscrText + inputTypeText + actionText);
+
+		$('<tr id="addInput"></tr>').insertAfter($(trIDObj));
+
+		$(trIDObj).on('click','#delInput',delInput);
+		
+		$(trIDObj).find('#inputName').alpha();
+	}
+
+	// This function is called when the button "Add MP" is pressed for custom applications
+	function addMP(objAddMP,state)
+	{
+		trID=randomString();
+		if(typeof state == "undefined")
+			$(this).parent().find('#addMP').attr('id',trID);
+		else
+			$(objAddMP).attr('id',trID);
+
+		MPText = "<td><table><tr id='MPHeader'><td><b>MP name</b> <input type='text' size='12' id='MPName'></td><td colspan='3' align='right'><button id='delMP'>Delete</button></td></tr><tr><td style='border:1px solid black;' colspan='4'><table><tr><td>Field</td><td>Description</td><td>Type</td><td>Unit</td><td>Action</td></tr></tr><tr id='addOutput'></tr><tr id='addOutputButton'><td colspan='4'><button type='button'>Add Output</button></td></tr></table></td></tr></table></td>";
+
+		trIDObj = $('#'+trID).closest('tr');
+		$(trIDObj).html(MPText);
+
+		$('<tr id="addMP" class="MP"></tr>').insertAfter($(trIDObj));
+
+		$(trIDObj).on('click','#delMP',delMP);
+	}
+
+	// This function is called when the button "Add Output" is pressed for custom applications
+	function addOutput(objAddOutput,state)
+	{
+		trID=randomString();
+		if(typeof state == "undefined")
+			$(this).parent().find('#addOutput').attr('id',trID);
+		else
+			$(objAddOutput).attr('id',trID);
+		
+		outputNameText = "<td><input type='text' size='7' id='outputName'></td>";
+		outputDscrText = "<td><input type='text' size='20' id='outputDscr'></td>";
+		outputTypeText = "<td><select id='outputType'><option value='string'>string</option><option value='bool'>boolean</option><option value='long'>long</option><option value='float'>float</option></select></td>";
+		outputUnitText = "<td><input type='text' size='5' id='outputUnit'></td>";
+		actionText = "<td id='delOutput' align='center'><img src='figures/Delete.png' title='delete output format' /></td>";
+
+		trIDObj = $('#'+trID).closest('tr');
+		$(trIDObj).html(outputNameText + outputDscrText + outputTypeText + outputUnitText + actionText);
+
+		$('<tr id="addOutput"></tr>').insertAfter($(trIDObj));
+
+		$(trIDObj).on('click','#delOutput',delOutput);
+		
+		$(trIDObj).find('#outputName').alpha();
+	}
+
+	// This function is called when the button "save" is pressed for tinyOS applications
+	function saveParam(event)
+	{
+		pIDObj = $(this).closest('p');
+		var appType = $(pIDObj).find('button').attr('disabled')=="disabled"?"default":"custom";
+		
+		var parList = "";
+		$(pIDObj).find('#parameters').find('tr').each(function()
+		{
+			if($(this)[0].id != "saveParam")
+			{
+				parName = $(this).find('#parName').text();
+				parValue = $(this).find('#parValue').val();
+				parList = parList + parName + ":" + parValue + ",";
+			}
+		});
+		parList = parList.slice(0,-1);
+		var sourceFile = appType=="default"?$(pIDObj).find('#application').attr('value'):$(pIDObj).find('#appCustom').text();
+		
+		var fileName=randomString();
+		var destFile=prompt("Please enter filename",fileName);
+		
+		$.ajax
+		({
+			type:"POST",
+			url:"event_handler.php?event=saveParam" + "&appType=" + appType + "&sourceFile=" + sourceFile + "&destFile=" + destFile,
+			data:"parList=" + parList,
+			success:function(result)
+			{
+				if(result == "success")
+				{
+					if(appType == "default")
+					{
+						version = $(pIDObj).find('#version').val();
+						description = $(pIDObj).find('#description').val();
+					}
+					else if(appType == "custom")
+					{
+						version = $(pIDObj).find('#verCustom').val();
+						description = $(pIDObj).find('#desrCustom').val();
+					}
+					
+					custom(pIDObj,"syncMod");
+
+					pIDObj.find('#platCustom').val("tinyOS");
+					$.ajax
+					({
+						async: false,
+						url:"event_handler.php?event=checkFile" + "&application=" + destFile,
+						success:function(result)
+						{
+							if(result == "success")
+				        	{
+					        	$(pIDObj).find('#loadFile').html("<td>Application</td><td id='appCustom'><b>" + destFile + "</b></td>");
+
+								$.ajax
+								({
+									async:false,
+									url:"event_handler.php?event=sensorPar" + "&appType=custom" + "&application=" + destFile,
+									success:function(result)
+									{
+										$(pIDObj).find('#inputConfig').html(result);
+										$(pIDObj).find("#sensorPar").treeview();
+									}
+								});
+				        	}
+							$(pIDObj).find('#outputConfig').html("");
+						}
+					});
+					pIDObj.find('#verCustom').val(version);
+					pIDObj.find('#desrCustom').val(description);
+				}
+				else
+					alert("Your parameter is not saved");
+			}
+		});
+	}
+
+	// This function is called when an application is deleted
+	function Delete(event)
+	{
+		pIDObj = $(this).closest('p');
+		$(pIDObj).remove();
+	}
+
+	// This function is called when a Mnemonic is deleted from custom input format
+	function delInput(event)
+	{
+		trIDObj = $(this).closest('tr');
+		$(trIDObj).remove();
+	}
+
+	// This function is called when a measurment point is deleted from custom output format
+	function delMP(event)
+	{
+		trIDObj = $(this).closest('table').closest('tr');
+		$(trIDObj).remove();
+	}
+
+	// This function is called when a field is deleted from custom output format
+	function delOutput(event)
+	{
+		trIDObj = $(this).closest('tr');
+		$(trIDObj).remove();
+	}
+
+	// function to generate random string
+	function randomString()
+	{
+		var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+		var string_length = 8;
+		var randomstring = '';
+		for (var i=0; i<string_length; i++)
+		{
+			var rnum = Math.floor(Math.random() * chars.length);
+			randomstring += chars.substring(rnum,rnum+1);
+		}
+		return randomstring;
+	}
+
+	// function to convert XML DOM object to string representation
+	function objToStrXML(obj)
+	{
+		strXML = strXML + "<" + $(obj)[0].tagName;
+		$(obj.attributes).each(function()
+		{
+			strXML = strXML + ' ' + this.nodeName + '="' + this.nodeValue + '"';
+		});
+		strXML = strXML + ">";
+		
+		if($(obj).children().length == "0")
+			strXML = strXML + $(obj).text();
+		else
+			$(obj).children().each(function()
+			{
+				objToStrXML(this);
+			});
+		
+		strXML = strXML + "</" + $(obj)[0].tagName + ">";
+
+		return strXML;		
+	}
+	
+	function previous(event)
+	{
+		window.name = "<experimentDescription>" + strExprAbst + saveAppConfig() + strNodeConfig + strTLconfig + "</experimentDescription>";
+		window.location = "exprAbs.html";
+	}
+	
+	function next(event)
+	{
+		window.name = "<experimentDescription>" + strExprAbst + saveAppConfig() + strNodeConfig + strTLconfig + "</experimentDescription>";
+		window.location = "node.html";
+	}
+
+	// function to save application configuration before leaving the page
+	function saveAppConfig()
+	{
+		var strAppConfig = "<appConfiguration>";
+		$(document).find('p').each(function()
+		{
+			if($(this)[0].id!="newAPP" && $(this)[0].id!="addAPP" && $(this)[0].id!="footer")
+			{
+				strAppConfig = strAppConfig + "<app";
+				if($(this).find('#default').length=="0")
+				{
+					var platform = $(this).find('#platform').val();
+					var application = $(this).find('#application').val();
+					var version = $(this).find('#version').val();
+					var description = $(this).find('#description').val();
+					
+					strAppConfig = strAppConfig + ' type="default"';
+					strAppConfig = strAppConfig + ' platform="' + platform + '"';
+					strAppConfig = strAppConfig + ' name="' + application + '"';
+					strAppConfig = strAppConfig + ' version="' + version + '">';
+					strAppConfig = strAppConfig + "<description>" + description + "</description>";
+					strAppConfig = strAppConfig + "<inputFormat>";
+					if(platform == "x86Linux")
+					{
+						$(this).find('#inputConfig').find('tr').each(function()
+						{
+							if($(this)[0].id!="formatHeader")
+							{
+								strAppConfig = strAppConfig + "<parameter";
+								strAppConfig = strAppConfig + ' name="' + $(this).find('td').eq(0).text() + '"';
+								strAppConfig = strAppConfig + ' dscr="' + $(this).find('td').eq(1).text() + '"';
+								strAppConfig = strAppConfig + ' type="' + $(this).find('td').eq(2).text() + '"/>';
+							}
+						});
+					}
+					else if(platform == "tinyOS")
+					{
+						$(this).find('#inputConfig').find('tr').each(function()
+						{
+							if($(this)[0].id!="saveParam")
+							{
+								strAppConfig = strAppConfig + "<parameter";
+								strAppConfig = strAppConfig + ' name="' + $(this).find('td').eq(0).text() + '"';
+								strAppConfig = strAppConfig + ' dscr="" type=""/>';
+							}
+						});
+					}
+					strAppConfig = strAppConfig + "</inputFormat>";
+					strAppConfig = strAppConfig + "<outputFormat>";
+					if(platform == "x86Linux")
+					{
+						$(this).find('#outputConfig').find('ol').each(function()
+						{
+							$(this).find('tr').each(function()
+							{
+								if($(this)[0].id == "MPHeader")
+								{
+									strAppConfig = strAppConfig + "<mp";
+									strAppConfig = strAppConfig + ' name="' + $(this).find('td').eq(1).text() + '">';
+								}
+								else if($(this)[0].id!="formatHeader")
+								{
+									strAppConfig = strAppConfig + "<parameter";
+									strAppConfig = strAppConfig + ' name="' + $(this).find('td').eq(0).text() + '"';
+									strAppConfig = strAppConfig + ' dscr="' + $(this).find('td').eq(1).text() + '"';
+									strAppConfig = strAppConfig + ' type="' + $(this).find('td').eq(2).text() + '"';
+									strAppConfig = strAppConfig + ' unit="' + $(this).find('td').eq(3).text() + '"/>';
+								}
+							});
+							strAppConfig = strAppConfig + "</mp>";
+						});
+					}
+					else if(platform == "tinyOS")
+					{
+					}
+					strAppConfig = strAppConfig + "</outputFormat>";
+				}
+				else if($(this).find('#custom').length=="0")
+				{
+					var platform = $(this).find('#platCustom').val();
+					var application = $(this).find('#appCustom').text();
+					var version = $(this).find('#verCustom').val();
+					var description = $(this).find('#desrCustom').val();
+					
+					strAppConfig = strAppConfig + ' type="custom"';
+					strAppConfig = strAppConfig + ' platform="' + platform + '"';
+					strAppConfig = strAppConfig + ' name="' + application + '"';
+					strAppConfig = strAppConfig + ' version="' + version + '">';
+					strAppConfig = strAppConfig + "<description>" + description + "</description>";
+					strAppConfig = strAppConfig + "<inputFormat>";
+					if(platform == "x86Linux")
+					{
+						$(this).find('#inputConfig').find('tr').each(function()
+						{
+							if($(this)[0].id!="" && $(this)[0].id!="addInput" && $(this)[0].id!="addInputButton")
+							{
+								var name = $(this).find('#inputName').val();
+								var dscr = $(this).find('#inputDscr').val();
+								var type = $(this).find('#inputType').val();
+								
+								strAppConfig = strAppConfig + "<parameter";
+								strAppConfig = strAppConfig + ' name="' + name + '"';
+								strAppConfig = strAppConfig + ' dscr="' + dscr + '"';
+								strAppConfig = strAppConfig + ' type="' + type + '"/>';
+							}
+						});
+					}
+					else if(platform == "tinyOS")
+					{
+						$(this).find('#inputConfig').find('tr').each(function()
+						{
+							if($(this)[0].id!="saveParam")
+							{
+								strAppConfig = strAppConfig + "<parameter";
+								strAppConfig = strAppConfig + ' name="' + $(this).find('td').eq(0).text() + '"';
+								strAppConfig = strAppConfig + ' dscr="" type=""/>';
+							}
+						});
+					}
+					strAppConfig = strAppConfig + "</inputFormat>";
+					strAppConfig = strAppConfig + "<outputFormat>";
+					if(platform == "x86Linux")
+					{
+						$(this).find('#outputConfig').find('tr').each(function()
+						{
+							if($(this).attr('class') == "MP" && $(this)[0].id != "addMP")
+							{
+								strAppConfig = strAppConfig + "<mp";
+								$(this).find('tr').each(function()
+								{
+									if($(this)[0].id == "MPHeader")
+										strAppConfig = strAppConfig + ' name="' + $(this).find('#MPName').val() + '">';
+									else if($(this)[0].id!="" && $(this)[0].id!="addOutput" && $(this)[0].id!="addOutputButton")
+									{
+										var name = $(this).find('#outputName').val();
+										var dscr = $(this).find('#outputDscr').val();
+										var type = $(this).find('#outputType').val();
+										var unit = $(this).find('#outputUnit').val();
+
+										strAppConfig = strAppConfig + "<parameter";
+										strAppConfig = strAppConfig + ' name="' + name + '"';
+										strAppConfig = strAppConfig + ' dscr="' + dscr + '"';
+										strAppConfig = strAppConfig + ' type="' + type + '"';
+										strAppConfig = strAppConfig + ' unit="' + unit + '"/>';
+									}
+								});
+								strAppConfig = strAppConfig + "</mp>";
+							}
+						});
+					}
+					else if(platform == "tinyOS")
+					{
+					}
+					strAppConfig = strAppConfig + "</outputFormat>";
+				}
+				strAppConfig = strAppConfig + "</app>";				
+			}
+		});
+		strAppConfig = strAppConfig + "</appConfiguration>";
+		return strAppConfig;
+	}
+	</script>
+</head>
+<body>
+	<table>
+	<tr>
+		<td><a href='#' style='text-decoration: none' id="previous" title='define your experiment'>Experiment Abstract</a></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><b><a href='#' style='text-decoration: none' title='Add applications to your experiment'>Applications included in experiment</a></b></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><a href='#' style='text-decoration: none' id="next" title='Select nodes to run your experiment applications'>Nodes included in experiment</a></td>
+	</tr>
+	<tr><td colspan=5><hr/></td></tr>
+	</table>
+	<h3>Applications included in experiment</h3>
+	<p id="newAPP"></p>
+	<p id="addAPP"><button type="button">Add Application</button></p>
+	<p id="footer"><button id="previous"><img src="figures/previous.png"/></button>
+	  			   <button id="next"><img src="figures/next.png"/></button></p>
+</body>
+</html>

@@ -1,0 +1,1868 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.alphanumeric.pack.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery-ui.js"></script>
+	<style type='text/css'>
+		img { cursor: pointer; }
+		#TB { border:1px solid black; box-shadow:0px 0px 15px #999; position:absolute; display:none; }
+		#parameter { border:1px solid black; box-shadow:0px 0px 15px #999; position:absolute; display:none; background-color:#FFFFFF; }
+		#timeline { border:1px solid black; box-shadow:0px 0px 15px #999; position:absolute; display:none; background-color:#FFFFFF; }
+		#sendMsg { border:1px solid black; box-shadow:0px 0px 15px #999; position:absolute; display:none; background-color:#FFFFFF; }
+		#TL td { height:20px; width:20px; border:1px solid black; cursor: pointer; }
+		#TLMsg td { height:20px; width:20px; border:1px solid black; cursor: pointer; }
+		#ES { border-collapse:collapse; }
+		#ES td { border:1px solid black; text-align: center}
+
+		/*  CSS ui-tab definition for the section 'application addition and program execution' */
+		.ui-helper-reset { margin: 0; padding: 0; border: 0; outline: 0; line-height: 1; text-decoration: none; font-size: 100%; list-style: none; }
+		.ui-helper-clearfix:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
+		.ui-state-default, .ui-widget-content .ui-state-default { border: 1px solid #808080; background: #e6e6e6; font-weight: normal; outline: none; }
+		.ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited { color: #000000; text-decoration: none; outline: none; }
+		.ui-state-active, .ui-widget-content .ui-state-active { border: 1px solid #808080; background: #e6e6e6; font-weight: normal; outline: none; }
+		.ui-state-active a, .ui-state-active a:link, .ui-state-active a:visited { color: #808080; outline: none; text-decoration: none; }
+		.ui-tabs .ui-tabs-nav li { position: relative; float: left; margin: 0 .1em -1px 0; padding: 0; }
+		.ui-tabs .ui-tabs-nav li a { float: left; text-decoration: none; padding: .1em 1em; }
+		.ui-tabs .ui-tabs-panel { padding: 1em 0.1em; display: block; border-width: 0; background: none; }
+		.ui-tabs .ui-tabs-hide { display: none !important; }
+	</style>
+	<script type='text/javascript'>
+	var strXML="";	var strExprAbst = "";	var strAppConfig = "";
+	var TLArray = [];	var statusTL="stop";	var startTL=0;	var color="";
+	
+	$(document).ready(function()
+	{
+		$(this).on('click','#addGroup', newGroup);
+		$(this).on('click','#previous', previous);
+		$(this).on('click','#abstractPage', abstractPage);
+		$(this).on('click','#home', home);
+		$(this).on('click', fadeOut);
+		$(this).on('click', '#saveConfig', saveConfig);
+		loadConfig();
+	});
+
+	// This function is called when the page is started or refreshed
+	function loadConfig()
+	{
+		strExpDscr = window.name;
+		
+		objExpDscr = $.parseXML(strExpDscr);
+
+		strXML="";	strExprAbst = objToStrXML($(objExpDscr).find("experimentAbstract"));
+		strXML="";	strAppConfig = objToStrXML($(objExpDscr).find("appConfiguration"));
+		strXML="";	strNodeConfig = objToStrXML($(objExpDscr).find("nodeConfiguration"));
+		strXML="";	strTLconfig = objToStrXML($(objExpDscr).find("TLConfiguration"));
+
+		if(strNodeConfig.length > 0)
+		{
+			objNodeConfig = $.parseXML(strNodeConfig);
+			objTLConfig = $.parseXML(strTLconfig);
+
+			$(objNodeConfig).find("groupInst").each(function()
+			{
+				newGroup("syncMod");
+				pIDObj = $(document).find("#newGroup").prev();
+
+				var platform = $(this).attr('platform');
+				var groupName = $(this).attr("name");
+				var nodeList = $(this).attr("nodeList").split(',');
+				var nodeListTD = "";
+				for(var i=0; i<nodeList.length; i++)
+					nodeListTD = nodeListTD + "<td><b><font color='red'>" + nodeList[i] + "</font></b></td>";
+				var image = $(this).attr("image");
+
+				$(pIDObj).find('#platform').val(platform);
+				$(pIDObj).find('#groupName').val(groupName);
+				if(platform == "x86Linux")
+				{
+					TB_map(pIDObj,platform,nodeListTD);
+				
+					$(pIDObj).find('#x86ImageList').val(image);
+					$(this).find("interface").each(function()
+					{
+						wireInt = $(this).attr("name");
+						wireMode = $(this).attr("mode");
+						channel = $(this).attr("channel");
+						essid = $(this).attr("essid");
+						ip = $(this).attr("ip");
+
+						addInt(pIDObj.find("#addInt"),"syncMod");
+						trIDObj = pIDObj.find("#addInt").prev();
+					
+						$(trIDObj).find('#intName').val(wireInt);
+						$(trIDObj).find('#wirelessMode').val(wireMode);
+						$(trIDObj).find('#channel').val(channel);
+						$(trIDObj).find('#essid').val(essid);
+						$(trIDObj).find('#ip').val(ip);
+					});
+					$(this).find("appInst").each(function()
+					{
+						report = $(this).attr("report");
+						appName = $(this).attr("name");
+						appID = $(this).attr("id");
+						MSG = $(this).attr("MSG");
+
+						addAPP(pIDObj.find("#addAPP"),"loadAPP","addAPP");
+						trIDObj = pIDObj.find("#addAPP").prev();
+
+						$(trIDObj).find('#appName').val(appName);
+						$(trIDObj).find('#appName').trigger('change');
+						$(trIDObj).find('#appID').val(appID);
+						$(trIDObj).find('#appReport').val(report);
+					
+						$(this).find("argument").children().each(function()
+						{
+							parName = $(this).attr("name");
+							parValue = $(this).attr("value");
+						
+							addPar(trIDObj.find("#addPar"),appName);
+							trParIDObj = trIDObj.find("#addPar").prev();
+
+							$(trParIDObj).find('#parName').val(parName);
+							$(trParIDObj).find('#parName').trigger('change');
+							$(trParIDObj).find('#parValue').val(parValue);
+						});
+					
+						var TLArray = [];
+						$(objTLConfig).find("startAPP").each(function()
+						{
+							if($(this).attr("groupName")==groupName && $(this).attr("id")==appID)
+							{
+								TLArray.push($(this).attr("at"));
+							}
+						});
+						$(objTLConfig).find("stopAPP").each(function()
+						{
+							if($(this).attr("groupName")==groupName && $(this).attr("id")==appID)
+							{
+								TLArray.push($(this).attr("at"));
+							}
+						});
+					
+						TLArray.sort(function(a,b){return a-b});
+					
+						divObj = $(trIDObj).find("#timeline");
+						statusTL="stop";
+						$(TLArray).each(function()
+						{
+							runPauseTL(divObj,this);
+						});
+					
+						$(trIDObj).find('#MSG').val(MSG);
+						var TLMsgArray = [];
+						$(objTLConfig).find("sendMsg").each(function()
+						{
+							if($(this).attr("groupName")==groupName && $(this).attr("id")==appID)
+							{
+								TLMsgArray.push($(this).attr("at"));
+							}
+						});
+
+						syncTLSendMsg(trIDObj);
+
+						divObj = $(trIDObj).find("#sendMsg");
+						$(TLMsgArray).each(function()
+						{
+							selectTLMsg(divObj,this);
+						});
+					});
+					$(this).find("execProg").each(function()
+					{
+						execCmd = $(this).attr("cmd");
+
+						addAPP(pIDObj.find("#execProg"),"loadAPP","execProg");
+						trIDObj = pIDObj.find("#execProg").prev();
+
+						$(trIDObj).find('#execCmd').val(execCmd);
+					
+						var TLArray = [];
+						$(objTLConfig).find("groupExec").each(function()
+						{
+							if($(this).attr("groupName")==groupName && $(this).attr("cmd")==execCmd)
+							{
+								TLArray.push($(this).attr("at"));
+							}
+						});
+					
+						TLArray.sort(function(a,b){return a-b});
+					
+						divObj = $(trIDObj).find("#timeline");
+						$(TLArray).each(function()
+						{
+							selectTL(divObj,this);
+						});
+					});
+				}
+				else if(platform == "tinyOS")
+				{
+					TB_map(pIDObj,platform,nodeListTD);
+				
+					appName = $(this).find('appInst').attr("name");
+					appID = $(this).find('appInst').attr("id");
+					report = $(this).find('appInst').attr("report");
+					$(pIDObj).find('#tinyOSImageList').val(appName);
+					$(pIDObj).find('#appID').val(appID);
+					if(report == "yes")
+						$(pIDObj).find('#appReport').attr('checked',true);
+					else
+						$(pIDObj).find('#appReport').attr('checked',false);
+				
+					var TLArray = [];
+					$(objTLConfig).find("startAPP").each(function()
+					{
+						if($(this).attr("groupName")==groupName)
+						{
+							TLArray.push($(this).attr("at"));
+						}
+					});
+					$(objTLConfig).find("stopAPP").each(function()
+					{
+						if($(this).attr("groupName")==groupName)
+						{
+							TLArray.push($(this).attr("at"));
+						}
+					});
+				
+					TLArray.sort(function(a,b){return a-b});
+				
+					divObj = $(pIDObj).find("#timeline");
+					statusTL="stop";
+					$(TLArray).each(function()
+					{
+						runPauseTL(divObj,this);
+					});
+				}
+			});
+		}
+	}
+
+	// This function pops up different interactive boxes when appropraite buttons/figures are pressed
+	function popUP(event)
+	{
+		var action=$(event.target).parent()[0].id;
+		if(action == "showTB")
+		{
+			var platform = $(this).closest('p').find('#platform').val();
+			var TB = $(this).closest('p').find('#TB');
+			TB.html(drawTB(platform));
+			TB.css({'display': 'block', 'top': $(this).position().top + $(this).height(), 'left':  $(this).position().left});
+		}
+		else if(action == "showPar")
+		{
+			var parameter = $(this).closest('tr').find('#parameter');
+			parameter.css({'display': 'block', 'top': $(this).position().top + $(this).height(), 'left':  $(this).position().left});
+		}
+		else if(action == "showTL")
+		{
+			var timeline = $(this).closest('tr').find('#timeline');
+			timeline.css({'display': 'block', 'top': $(this).position().top + $(this).height(), 'left':  $(this).position().left});
+		
+		}
+		else if(action == "showSendMsg")
+		{
+			syncTLSendMsg($(this).closest('tr'));	// synchronize application timeline with send message timeline
+
+			var sendMsg = $(this).closest('tr').find('#sendMsg');
+			sendMsg.css({'display': 'block', 'top': $(this).position().top + $(this).height(), 'left':  $(this).position().left});
+
+		}
+	}
+
+	// function is called everytime for a mouse click event and used to fade-out popped out boxes in an interactive fashion
+	function syncTLSendMsg(trIDObj)
+	{
+		// select active areas from timeline entry section
+		var selectedTL = [];
+		$(trIDObj).find('#TL').find('td').each(function()
+		{
+			if($(this).attr('bgcolor') == '#5588ee')
+				selectedTL.push('Msg');
+			else
+				selectedTL.push('NoMsg');
+		});
+		// apply selected active areas on send message timeline
+		$(trIDObj).find('#TLMsg').find('td').each(function()
+		{
+			var Msg = selectedTL.shift();
+			if(Msg == 'NoMsg')
+			{
+				$(this).css({'border': '0px'});
+				$(this).attr('bgcolor','#e6e6e6');
+			}
+
+			else if(Msg == 'Msg')
+			{
+				$(this).css({'border': '1px solid black'});
+				if($(this).attr('bgcolor') == '#e6e6e6')
+					$(this).attr('bgcolor','#FFFFFF');
+			}
+		});
+	}
+
+	// function is called everytime for a mouse click event and used to fade-out popped out boxes in an interactive fashion
+	function fadeOut(event)
+	{
+		if($(event.target).parent()[0].id == "showTB")
+		{
+		    	var selectedP = $(event.target).closest('p')[0].id;
+		    	$('p').each(function()
+		    	{
+		    		if($(this)[0].id != "newGroup" && $(this)[0].id != "addGroup")
+		    		{
+				    	if($(this)[0].id != selectedP)
+				    		$(this).find('#TB').fadeOut("fast");
+			       		$(this).find('#parameter').fadeOut("fast");
+				    	$(this).find('#timeline').fadeOut("fast");
+					$(this).find('#sendMsg').fadeOut("fast");
+		    		}
+		    	});
+		}
+		else if($(event.target).parent()[0].id == "showPar")
+		{
+			var selectedP = $(event.target).closest('p')[0].id;
+			var selectedTR = $(event.target).closest('tr')[0].id;
+		    	$('p').each(function()
+		    	{
+		    		if($(this)[0].id != "newGroup" && $(this)[0].id != "addGroup")
+		    		{
+					if($(this)[0].id == selectedP)
+					{
+					    	$(this).find('#TB').fadeOut("fast");
+				    	    	$(this).find('#appConfig').find('tr').each(function()
+				    	    	{
+				    	    		if($(this)[0].id != "" && $(this)[0].id != "addAPP")
+				    	    		{
+					    		    	if($(this)[0].id != selectedTR)
+					    		    		$(this).find('#parameter').fadeOut("fast");
+								$(this).find('#timeline').fadeOut("fast");
+								$(this).find('#sendMsg').fadeOut("fast");
+				    	    		}
+				    	    	});
+					}
+					else
+					{
+					    	$(this).find('#TB').fadeOut("fast");
+			       			$(this).find('#parameter').fadeOut("fast");
+				    		$(this).find('#timeline').fadeOut("fast");
+						$(this).find('#sendMsg').fadeOut("fast");
+					}
+		    		}
+		    	});
+		}
+		else if($(event.target).parent()[0].id == "showTL")
+		{
+			var selectedP = $(event.target).closest('p')[0].id;
+			var selectedTR = $(event.target).closest('tr')[0].id;
+		    	$('p').each(function()
+		    	{
+		    		if($(this)[0].id != "newGroup" && $(this)[0].id != "addGroup")
+		    		{
+			    		if($(this).find('#platform').val() == "x86Linux")
+			    		{
+				    	    	$(this).find('#appConfig').find('tr').each(function()
+				    	    	{
+				    	    		if($(this)[0].id != "" && $(this)[0].id != "addAPP")
+				    	    		{
+					    		    	if($(this)[0].id != selectedTR)
+					    		    		$(this).find('#timeline').fadeOut("fast");
+								$(this).find('#parameter').fadeOut("fast");
+								$(this).find('#sendMsg').fadeOut("fast");
+				    	    		}
+				    	    	});
+			    		}
+			    		else
+			    			if($(this)[0].id != selectedP)
+			    				$(this).find('#timeline').fadeOut("fast");
+			    		$(this).find('#TB').fadeOut("fast");
+		    		}
+		    	});
+		}
+		else if($(event.target).parent()[0].id == "showSendMsg")
+		{
+			var selectedP = $(event.target).closest('p')[0].id;
+			var selectedTR = $(event.target).closest('tr')[0].id;
+		    	$('p').each(function()
+		    	{
+		    		if($(this)[0].id != "newGroup" && $(this)[0].id != "addGroup")
+		    		{
+			    		if($(this).find('#platform').val() == "x86Linux")
+			    		{
+				    	    	$(this).find('#appConfig').find('tr').each(function()
+				    	    	{
+				    	    		if($(this)[0].id != "" && $(this)[0].id != "addAPP")
+				    	    		{
+					    		    	if($(this)[0].id != selectedTR)
+					    		    		$(this).find('#sendMsg').fadeOut("fast");
+								$(this).find('#parameter').fadeOut("fast");
+								$(this).find('#timeline').fadeOut("fast");
+				    	    		}
+				    	    	});
+			    		}
+			    		else
+			    			if($(this)[0].id != selectedP)
+			    				$(this).find('#sendMsg').fadeOut("fast");
+			    		$(this).find('#TB').fadeOut("fast");
+		    		}
+		    	});
+		}
+		else if($(event.target).closest('#TB').length == 0 && $(event.target).closest('#parameter').length == 0 && $(event.target).closest('#timeline').length == 0 && $(event.target).closest('#sendMsg').length == 0)
+		{
+		    	$('p').each(function()
+			{
+				if($(this)[0].id != "newGroup" && $(this)[0].id != "addGroup")
+				{
+					if($(event.target).closest('#parameter').length == 0 && $(event.target).closest('#timeline').length == 0 && $(event.target).closest('#sendMsg').length == 0)
+					{
+						$(this).find('#parameter').fadeOut("fast");
+						$(this).find('#timeline').fadeOut("fast");
+						$(this).find('#sendMsg').fadeOut("fast");
+					}
+					else if($(event.target).closest('#parameter').length == 1)
+					{
+						$(this).find('#timeline').fadeOut("fast");
+						$(this).find('#sendMsg').fadeOut("fast");
+					}
+					else if($(event.target).closest('#timeline').length == 1)
+					{
+						$(this).find('#parameter').fadeOut("fast");
+						$(this).find('#sendMsg').fadeOut("fast");
+					}
+					else if($(event.target).closest('#sendMsg').length == 1)
+					{
+						$(this).find('#parameter').fadeOut("fast");
+						$(this).find('#timeline').fadeOut("fast");
+					}
+					$(this).find('#TB').fadeOut("fast");
+				}
+		    	});
+		}
+
+		if($(event.target)[0].id == "confirmTL")
+		{
+			$(event.target).closest('#timeline').fadeOut("fast");
+			$(event.target).closest('#sendMsg').fadeOut("fast");
+		}
+	}
+
+	// This function is called when the button "Add Group" is pressed
+	function newGroup(serverWait)
+	{
+		if(typeof serverWait == "undefined")
+		{
+			serverWait = true;
+		}
+		else
+		{
+			serverWait = false;
+		}
+		$.ajax
+		({
+			async: serverWait,
+			url:"event_handler.php?event=newGroup",
+			success:function(result)
+			{
+				var pID=randomString();
+				$('#newGroup').attr('id',pID);
+				
+				var pIDObj = $('#'+pID).closest('p');
+				$(pIDObj).html(result);
+				$('<p id="newGroup"></p>').insertAfter($(pIDObj));
+				
+				$(pIDObj).on('click','#deleteNode',deleteNode);
+				$(pIDObj).on('click','#showTB',popUP);
+				$(pIDObj).on('click','area',TB_map);
+				$(pIDObj).on('change','#platform',platform);
+			}
+		});
+	}
+
+	// This function is called when a different platform is selected
+	function platform(event)
+	{
+		var pIDObj = $(this).closest('p');
+		$(pIDObj).find('#nodeList').html("");
+		$(pIDObj).find('#imageList').html("");
+		$(pIDObj).find('#rulerAbove').html("");
+		$(pIDObj).find('#intConfig').html("");
+		$(pIDObj).find('#addIntButton').html("");
+		$(pIDObj).find('#rulerBelow').html("");
+		$(pIDObj).find('#appConfig').html("");
+		$(pIDObj).find('#addAPPButton').html("");
+		$(pIDObj).find('#TB').html("");
+	}
+
+	// This function draws the given testbed map
+	function drawTB(platform)
+	{
+		var TB;
+		$.ajax
+		({
+			async:false,
+			url:"event_handler.php?event=drawTB" + "&platform=" + platform,
+			success:function(result)
+			{
+				TB = result;
+			}
+		});
+		return TB;
+	}
+
+	// This function is called when a node from the testbed figure is pressed
+	function TB_map(pIDObj,platform,nodeList)
+	{
+		if(typeof nodeList == "undefined")
+		{
+			var pIDObj = $(this).closest('p');
+			var selectedNode = $(this).attr('title');
+			var platform = $(this).attr('platform');
+			var nodeRepeatedFlag = 0;
+			var nodeState = $(pIDObj).find('#nodeList').find('table').length == 0 ? "NODE_CREATION" : "NODE_MODIFICATION";
+
+			var nodeList = "<table><tr>";
+			if($(pIDObj).find('#nodeList').find('td').length != 0)
+			{
+				$(pIDObj).find('#nodeList').find('td').each(function()
+				{
+					if($(this).text() != selectedNode)
+						nodeList = nodeList + "<td><b><font color='red'>" + $(this).text() + "</font></b></td>";
+					else
+						nodeRepeatedFlag = 1;
+				});
+			}
+			if(nodeRepeatedFlag == 0)
+				nodeList = nodeList + "<td><b><font color='red'>" + selectedNode + "</font></b></td>";
+			nodeList = nodeList + "</tr></table>";
+
+			$(pIDObj).find('#nodeList').html(nodeList);
+		}
+		else
+		{
+			var nodeState = "NODE_CREATION";
+			$(pIDObj).find('#nodeList').html("<table><tr>" + nodeList + "</tr></table>");
+		}
+
+		if(platform == "x86Linux" && nodeState == "NODE_CREATION")
+		{
+			$.ajax
+			({
+				async:false,
+				url:"event_handler.php?event=x86nodeSelected",
+				success:function(result)
+				{
+					$(pIDObj).off('click','#addIntButton');
+					$(pIDObj).off('click','#addAPPButton');
+
+					$(pIDObj).find('#imageList').html(result);
+					$(pIDObj).find('#rulerAbove').html("<td colspan='5'><hr />");
+					$(pIDObj).find('#intConfig').html("<table><tr><td>Interface</td><td>Mode</td><td>Channel</td><td>ESSID</td><td>IP</td><td>Action</td></tr><tr id='addInt'></tr></table>");
+					$(pIDObj).find('#addIntButton').html("<td><button type='button'>Add Interface</button></td>");
+					$(pIDObj).find('#rulerBelow').html("<td colspan='5' ><hr /></td>");
+					$(pIDObj).find('#appConfig').html("<span id='tabs'><ul><li><a href='#tabs-1'>Add Application</a></li><li><a href='#tabs-2'>Execute Program</a></li></ul><span id='tabs-1'><table><tr><td>Application</td><td>Inst ID</td><td>Report</td><td>Parameter</td><td>TimeLine</td><td>Send Message</td><td>Action</td></tr><tr id='addAPP'></tr></table></span><span id='tabs-2'><table><tr><td>Executable Command</td><td>TimeLine</td><td>Action</td></tr><tr id='execProg'></tr></table></span></span>");
+					$(pIDObj).find('#addAPPButton').html("<td><button type='button'>Add</button></td>");
+	
+					$(pIDObj).on('click','#addIntButton',addInt);
+					$(pIDObj).on('click','#addAPPButton',addAPP);
+					$(pIDObj).find('#tabs').tabs();
+				}
+			});
+		}
+		else if(platform == "tinyOS" && nodeState == "NODE_CREATION")
+		{
+			$(pIDObj).find('#imageList').html("");
+			$(pIDObj).find('#rulerAbove').html("<td colspan='5' ><hr /></td>");
+			
+			var TLtable = "";
+			if(strExprAbst.length > 0)
+			{
+				objExprAbst = $.parseXML(strExprAbst);
+				var duration = $(objExprAbst).find("duration").text();			
+				var granularity = Math.ceil(duration/256);
+				var granDuration = Math.ceil(duration/(granularity));
+				var row = Math.ceil(Math.sqrt(granDuration));
+				var column = granDuration/row>row-1?row:row-1;
+				
+				TLtable = "<table id='TL'>";			
+				var i;
+				for(i=0; i<row; i++)
+				{
+					TLtable = TLtable + "<tr>";
+
+					var j;
+					for(j=1; j<=column && i*column+j<=granDuration; j++)
+					{
+						TLtable = TLtable + "<td id='" + parseInt(i*granularity*column+j*granularity) + "' title='" + parseInt(i*granularity*column+j*granularity) + " sec' bgcolor='#FFFFFF'></td>";
+					}
+					TLtable = TLtable + "</tr>";
+				}
+				TLtable = TLtable + "</table><form><table><tr><td><input type='reset' id='reset' value='Reset' /></td><td><input type='radio' name='time' value='runExp' checked = 'checked'/>Run</td><td><input type='radio' name='time' value='pauseExp'/>Pause</td></tr><tr><td>Granularity</td><td><b>" + granularity + " sec</b></td><td><input type='button' id='confirmTL' value='Confirm'></td></tr></table></form>";
+			}
+			if(strAppConfig.length > 0)
+			{
+				var imageID=randomString();
+				imageList = "<table><tr><td>Image</td><td>Image ID</td><td>Report</td><td>TimeLine</td></tr>";
+				imageList = imageList + "<tr><td><select id='tinyOSImageList'>";	
+				objAppConfig = $.parseXML(strAppConfig);
+				$(objAppConfig).find("app").each(function()
+				{
+					if($(this).attr("platform") == "tinyOS")
+					{
+						imageName = $(this).attr("name");
+						imageList = imageList + "<option value='" + imageName + "'>" + imageName + "</option>";
+					}
+				});
+				imageList = imageList + "</select></td>";
+				imageList = imageList + "<td><input type='text' size='13' id='appID' value='" + imageID + "'></td>";
+				imageList = imageList + "<td align='center'><input type='checkbox' id='appReport' /></td>";
+				imageList = imageList + "<td id='showTL' align='center'><img src='figures/TL.png' title='timeline entry section' ><div id='timeline'>" + TLtable + "</div></td></tr></table>";
+				
+				$(pIDObj).find('#intConfig').html(imageList);
+				$(pIDObj).find('#addIntButton').html("");
+				$(pIDObj).find('#rulerBelow').html("");
+				$(pIDObj).find('#appConfig').html("");
+				$(pIDObj).find('#addAPPButton').html("");
+				
+				$(pIDObj).on('click','#showTL',popUP);
+				$(pIDObj).find('#TL').on('click','td',runPauseTL);
+				$(pIDObj).on('click','#reset',resetTL);
+			}
+		}
+	}
+
+	// This function is called when the button "Add Interface" is pressed for x86LInux platform
+	function addInt(objAddInt,serverWait)
+	{
+		trID=randomString();
+		if(typeof serverWait == "undefined")
+		{
+			$(this).parent().find('#addInt').attr('id',trID);
+			
+			trIDObj = $('#'+trID).closest('tr');
+			
+			node = $(this).closest('p').find('#nodeList').find('td').first().text();
+			serverWait = true;
+		}
+		else
+		{
+			$(objAddInt).attr('id',trID);
+			
+			trIDObj = $('#'+trID).closest('tr');
+			
+			node = $(objAddInt).closest('p').find('#nodeList').find('td').first().text();
+			serverWait = false;
+		}
+
+		$.ajax
+		({
+			async:serverWait,
+			url:"event_handler.php?event=addInt" + "&node=" + node,
+			success:function(result)
+			{
+				$(trIDObj).html(result);
+				$(trIDObj).find('#essid').alphanumeric({ichars:'?"$[\\]+!#;'});
+				$(trIDObj).find('#ip').numeric({allow:'.'});
+				
+			}
+		});
+		$('<tr id="addInt"></tr>').insertAfter($(trIDObj));
+
+		$(trIDObj).on('click','#delInt',delInt);		
+	}
+
+	// This function is called when the button "Add" is pressed for x86LInux platform
+	function addAPP(objAddAPP,state,execType)
+	{
+		if(typeof execType == "undefined")
+			execType = $(this).closest('p').find('#tabs-1').attr('aria-hidden') == "false" ? "addAPP" : "execProg";
+
+		trID=randomString();
+		/* When Add Application is selected */
+		if(execType == "addAPP")
+		{
+			if(typeof state == "undefined")
+				$(this).parent().find('#addAPP').attr('id',trID);
+			else
+				$(objAddAPP).parent().find('#addAPP').attr('id',trID);
+
+			if(strAppConfig.length > 0)
+			{
+				appNameList = "<td><select id='appName'>";
+				objAppConfig = $.parseXML(strAppConfig);
+				$(objAppConfig).find("app").each(function()
+				{
+					if($(this).attr("platform") == "x86Linux")
+					{
+						appNameList = appNameList + "<option value=" + $(this).attr("name") + ">" + $(this).attr("name") + "</option>";
+					}
+				});
+				appNameList = appNameList + "</select></td>";
+
+				var firstApp = $(objAppConfig).find("app[platform='x86Linux']:first").attr('name');	// first application of x86Linux platform
+				var reportText = retrieveMPList(firstApp);
+			}
+
+			var TLtable = "<table id='TL'>";
+			var sendMsgTable = "<table id='TLMsg'>";
+			if(strExprAbst.length > 0)
+			{
+				objExprAbst = $.parseXML(strExprAbst);
+				var duration = $(objExprAbst).find("duration").text();			
+				var granularity = Math.ceil(duration/256);
+				var granDuration = Math.ceil(duration/(granularity));
+				var row = Math.ceil(Math.sqrt(granDuration));
+				var column = granDuration/row>row-1?row:row-1;
+	
+				var i;
+				for(i=0; i<row; i++)
+				{
+					TLtable = TLtable + "<tr>";
+					sendMsgTable = sendMsgTable + "<tr>";
+
+					var j;
+					for(j=1; j<=column && i*column+j<=granDuration; j++)
+					{
+						TLtable = TLtable + "<td id='" + parseInt(i*granularity*column+j*granularity) + "' title='" + parseInt(i*granularity*column+j*granularity) + " sec' bgcolor='#FFFFFF'></td>";
+						sendMsgTable = sendMsgTable + "<td id='" + parseInt(i*granularity*column+j*granularity) + "' title='" + parseInt(i*granularity*column+j*granularity) + " sec' bgcolor='#FFFFFF'></td>";
+					}
+					TLtable = TLtable + "</tr>";
+					sendMsgTable = sendMsgTable + "</tr>";
+				}
+				TLtable = TLtable + "</table><form><table><tr><td><input type='reset' id='resetTL' value='Reset' /></td><td><input type='radio' name='time' value='runExp' checked = 'checked'/>Run</td><td><input type='radio' name='time' value='pauseExp'/>Pause</td></tr><tr><td>Granularity</td><td><b>" + granularity + " sec</b></td><td><input type='button' id='confirmTL' value='Confirm'></td></tr></table></form>";
+				sendMsgTable = sendMsgTable + "</table><form><table><tr><td><input type='reset' id='resetTLMsg' value='Reset' /></td></tr><tr><td>Granularity</td><td><b>" + granularity + " sec</b></td><td><input type='button' id='confirmTL' value='Confirm'></td></tr></table></form>";
+			}
+		
+			var instID=randomString();
+			appIDText = "<td><input type='text' size='13' id='appID' value='" + instID + "'></td>";
+			appParText = "<td id='showPar' align='center'><img src='figures/parameter.png' title='Parameter entry section' /><div id='parameter'><table><tbody><tr><td>Name</td><td>Value</td><td>action</td></tr><tr id='addPar'></tr><tr id='addParButton'><td><button>Add</button></td></tr></tbody></table></div></td>";
+			timeLineText = "<td id='showTL' align='center'><img src='figures/TL.png' title='timeline entry section' ><div id='timeline'>" + TLtable + "</div></td>";
+			sendMessageText = "<td id='showSendMsg' align='center'><img src='figures/send_message.png' title='send message to application' ><div id='sendMsg'>" + sendMsgTable + "</div></td>";
+			actionText = "<td id='delAPP' align='center'><img src='figures/Delete.png' title='delete application' /></td>";
+
+			trIDObj = $('#'+trID).closest('tr');
+			$(trIDObj).html(appNameList + appIDText + reportText + appParText + timeLineText + sendMessageText + actionText);
+
+			var cols = column>5  ? 21*column/8 : 20;
+			$(trIDObj).find('#sendMsg').prepend("<table><tr><td>Message</td><td><textarea rows='2' cols='" + cols + "' id='MSG'></textarea></td></tr></table>");
+
+			$('<tr id="addAPP"></tr>').insertAfter($(trIDObj));
+
+			$(trIDObj).on('change','#appName',function(event)
+			{
+				var trIDObj = $(this).closest('tr');
+
+				$(trIDObj).find("#showMP").html(retrieveMPList($(this).val()));
+				$(trIDObj).find("#parameter").html("<table><tbody><tr><td>Name</td><td>Value</td><td>action</td></tr><tr id='addPar'></tr><tr id='addParButton'><td><button>Add</option></td></tr></tbody></table>");
+				$(trIDObj).find("#timeline").find("#reset").trigger('click');
+			});
+			$(trIDObj).on('click','#showPar',popUP);
+			$(trIDObj).on('click','#showTL',popUP);
+			$(trIDObj).on('click','#showSendMsg',popUP);
+			$(trIDObj).on('click','#delAPP',delAPP);
+			$(trIDObj).on('click','#addParButton',addPar);
+			$(trIDObj).find('#TL').on('click','td',runPauseTL);
+			$(trIDObj).find('#TLMsg').on('click','td',selectTLMsg);
+			$(trIDObj).on('click','#resetTL',resetTL);
+			$(trIDObj).on('click','#resetTLMsg',resetTLMsg);
+		}
+		/* When Program Execution is selected */
+		else if(execType == "execProg")
+		{
+			if(typeof state == "undefined")
+				$(this).parent().find('#execProg').attr('id',trID);
+			else
+				$(objAddAPP).parent().find('#execProg').attr('id',trID);
+		
+			var TLtable = "";
+			if(strExprAbst.length > 0)
+			{
+				objExprAbst = $.parseXML(strExprAbst);
+				var duration = $(objExprAbst).find("duration").text();			
+				var granularity = Math.ceil(duration/256);
+				var granDuration = Math.ceil(duration/(granularity));
+				var row = Math.ceil(Math.sqrt(granDuration));
+				var column = granDuration/row>row-1?row:row-1;
+			
+				TLtable = "<table id='TL'>";			
+				var i;
+				for(i=0; i<row; i++)
+				{
+					TLtable = TLtable + "<tr>";
+
+					var j;
+					for(j=1; j<=column && i*column+j<=granDuration; j++)
+					{
+						TLtable = TLtable + "<td id='" + parseInt(i*granularity*column+j*granularity) + "' title='" + parseInt(i*granularity*column+j*granularity) + " sec' bgcolor='#FFFFFF'></td>";
+					}
+					TLtable = TLtable + "</tr>";
+				}
+				TLtable = TLtable + "</table><form><table><tr><td><input type='reset' id='resetTL' value='Reset' /></td></tr><tr><td>Granularity</td><td><b>" + granularity + " sec</b></td><td><input type='button' id='confirmTL' value='Confirm'></td></tr></table></form>";
+			}
+			execCmdText = "<td><textarea rows='1' cols='45' id='execCmd'></textarea></td>";
+			timeLineText = "<td id='showTL' align='center'><img src='figures/TL.png' title='timeline entry section' ><div id='timeline'>" + TLtable + "</div></td>";
+			actionText = "<td id='delAPP' align='center'><img src='figures/Delete.png' title='delete application' /></td>";
+
+			trIDObj = $('#'+trID).closest('tr');
+			$(trIDObj).html(execCmdText + timeLineText + actionText);
+
+			$('<tr id="execProg"></tr>').insertAfter($(trIDObj));
+
+			$(trIDObj).on('click','#showTL',popUP);
+			$(trIDObj).on('click','#delAPP',delAPP);
+			$(trIDObj).find('#TL').on('click','td',selectTL);
+			$(trIDObj).on('click','#resetTL',resetTL);
+		}
+	}
+
+	// This function lists application measurment points and is called during node initialization or when a differnt application is selected for a node
+	function retrieveMPList(appName)
+	{
+		var reportText = "<td id='showMP'><select id='appReport'><option value='null'>select MP</option>";
+		$(objAppConfig).find("app").each(function()
+		{
+			if($(this).attr("name") == appName)
+			{
+				$(this).find("outputFormat").find('mp').each(function()
+				{
+					reportText = reportText + "<option value=" + $(this).attr("name") + ">" + $(this).attr("name") + "</option>";
+				});
+			}
+		});
+		reportText = reportText + "</select></td>";
+		return reportText;
+	}
+
+	// This function is called when a user adds a parameter to his/her application
+	function addPar(objAddPar,appName)
+	{
+		trParID=randomString();
+		if(typeof appName == "undefined")
+		{
+			$(this).parent().find('#addPar').attr('id',trParID);
+			appName = $(this).closest('div').closest('tr').find('#appName').val();
+			
+		}
+		else
+		{
+			$(objAddPar).parent().find('#addPar').attr('id',trParID);
+		}
+
+		if(strAppConfig.length > 0)
+		{		
+			var trParIDObj = $('#'+trParID).closest('tr');
+			var objAppConfig = $.parseXML(strAppConfig);
+
+			var parNameList = "<select id='parName'>";
+			$(objAppConfig).find("app").each(function()
+			{				
+				if($(this).attr("name") == appName)
+				{
+					$(this).find("inputFormat").find("parameter").each(function()
+					{
+						parNameList = parNameList + "<option value=" + $(this).attr("name") + ">" + $(this).attr("name") + "</option>";
+					});
+				}
+			});
+			parNameList = parNameList + "</select>";
+			$(trParIDObj).html("<td>" + parNameList + "</td><td><input type='text' id='parValue' size='7'></input></td><td id='delPar' align='center'><img src='figures/Delete.png' title='delete parameter' /></td>");
+
+
+			$(trParIDObj).on('change','#parName',function(event)
+			{
+				var seletedTrParIDObj = $(this).closest('tr');
+				var selectedMnemonic = $(this).val();
+				$(objAppConfig).find("app").each(function()
+				{				
+					if($(this).attr("name") == appName)
+					{
+						$(this).find("inputFormat").find("parameter").each(function()
+						{
+							if($(this).attr('name') == selectedMnemonic)
+							{
+								if($(this).attr('type') == "string")
+									$(seletedTrParIDObj).find('td:eq(1)').html("<input type='text' id='parValue' size='7'></input>");
+								else if($(this).attr('type') == "integer")
+								{
+									$(seletedTrParIDObj).find('td:eq(1)').html("<input type='text' id='parValue' size='7'></input>");
+									$(seletedTrParIDObj).find('#parValue').numeric();
+								}
+								else if($(this).attr('type') == "null")
+									$(seletedTrParIDObj).find('td:eq(1)').html("<input type='text' id='parValue' size='7' value='true' disabled='disabled'></input>");
+							}
+						});
+					}
+				});
+			});
+			// trigger() is used here in case of an application's first mnemonic is either an integer or null type
+			$(trParIDObj).find('#parName').trigger('change');
+		}
+
+		$('<tr id="addPar"></tr>').insertAfter($(trParIDObj));
+		$(trParIDObj).on('click','#delPar',delPar);
+	}
+
+	// This function is called when a user clicks on a timeline display to configure running and pausing intervals of an application
+	function runPauseTL(divObj,time)
+	{
+		if(statusTL == "stop")
+		{
+			if(typeof time == "undefined")
+			{
+				startTL=parseInt($(event.target)[0].id,10);
+				$(this).attr('bgcolor','#c0c0c0');
+			}
+			else
+			{
+				startTL=parseInt(time,10);
+			}
+			statusTL="start";
+		}
+		else if(statusTL == "start")
+		{
+			if(typeof time == "undefined")
+			{
+				var divObj = $(this).closest('div');
+				var stopTL=parseInt($(event.target)[0].id,10);
+				var action = $(divObj).find('input[name=time]:checked').val();
+			}
+			else
+			{
+				var stopTL=parseInt(time,10);
+				var action="runExp";
+			}
+
+			var i;
+			for(i=startTL; i<=stopTL; i++)
+			{
+				if(action == "runExp")
+					$(divObj).find('#TL').find('#'+i).attr('bgcolor','#5588ee');
+				if(action == "pauseExp")
+					$(divObj).find('#TL').find('#'+i).attr('bgcolor','#FFFFFF');
+			}
+			
+			statusTL="stop";
+		}
+	}
+
+	// This function is called when a user clicks on a timeline display to select execution time of a program
+	function selectTL(divObj,time)
+	{
+		if(typeof time == "undefined")
+			$(this).attr('bgcolor','#5588ee');
+		else
+			$(divObj).find('#TL').find('#'+time).attr('bgcolor','#5588ee');
+	}
+
+	// This function is called when a user clicks on a timeline display to select execution time of an application message
+	function selectTLMsg(divObj,time)
+	{
+		if(typeof time == "undefined" && $(this).attr('bgcolor') == '#FFFFFF')
+			$(this).attr('bgcolor','#5588ee');
+		else
+			$(divObj).find('#TLMsg').find('#'+time).attr('bgcolor','#5588ee');
+	}
+
+	// This function is called when a user clicks the button "Reset" on a timeline display
+	function resetTL(event)
+	{
+		divObj = $(this).closest('div');
+		$(divObj).find('#TL').find('td').attr('bgcolor','#FFFFFF');
+	}
+
+	// This function is called when a user clicks the button "Reset" on a sendMsg timeline display
+	function resetTLMsg(event)
+	{
+		divObj = $(this).closest('div');
+		$(divObj).find('#TLMsg').find('td').each(function()
+		{
+			if($(this).attr('bgcolor') == '#5588ee')
+				$(this).attr('bgcolor','#FFFFFF');
+		});
+	}
+	
+	function deleteNode(event)
+	{
+		pIDObj = $(this).closest('p');
+		$(pIDObj).remove();
+	}
+
+	function delInt(event)
+	{
+		trIDObj = $(this).closest('tr');
+		$(trIDObj).remove();
+	}
+
+	function delAPP(event)
+	{
+		trIDObj = $(this).closest('tr');
+		$(trIDObj).remove();
+	}
+
+	function delPar(event)
+	{
+		trIDObj = $(this).closest('tr');
+		// setTimeout function is used here to force delPar act after fadeOut event
+		setTimeout(function() { $(trIDObj).remove(); }, 0);
+	}
+
+	// This function is called when the button "Save Configuration" is pressed
+	function saveConfig(event)
+	{
+		var exprDscr = "<experimentDescription>" + strExprAbst + strAppConfig + saveNodeConfig() + saveTLconfig() + "</experimentDescription>";
+		var objExprDscr = $.parseXML(exprDscr);
+		var exprDscrStatus = validateExprDscr(objExprDscr);
+
+		var objExprDscrStatus = $.parseXML(exprDscrStatus);
+		if($(objExprDscrStatus).find("warning").length != 0)
+			displayWarningStatus(objExprDscrStatus);
+
+		if($(objExprDscrStatus).find("error").length == 0)
+		{
+			$(document).find("#configFile").html("");
+			$(document).find("#errorStatus").html("");
+
+			var exprDscrOEDL = genOEDL(objExprDscr);
+			var appList = [];
+			$(objExprDscr).find('appConfiguration').find('app').each(function()
+			{
+				if($(this).attr('type') == "default")
+					appList.push([$(this).attr('name'),"default_bin"]);
+				else if($(this).attr('type') == "custom")
+					appList.push([$(this).attr('name'),"custom_bin"]);
+			});
+			var jsonAppList = JSON.stringify(appList);
+			var randomName=randomString();
+			var packageName=prompt("Please enter package name",randomName);
+			if(packageName != null)
+			{
+				$.ajax
+				({
+					type:"POST",
+					url:"event_handler.php?event=saveConfig" + "&packageName=" + packageName,
+					data:{exprDscr: exprDscr, exprDscrOEDL: exprDscrOEDL, jsonAppList: jsonAppList},
+					success:function(result)
+					{
+						$(document).find("#configFile").html(result);
+						$(document).find("#errorStatus").html("");
+					}
+				});
+			}
+		}
+		else if($(objExprDscrStatus).find("error").length != 0)
+		{
+			$(document).find("#configFile").html("<font color='red'><b>Error/Warning! Look further below</b></font>");
+			displayErrorStatus(objExprDscrStatus);
+		}
+	}
+
+	// This function validates possible error and warning messages of the experiment description
+	function validateExprDscr(objExprDscr)
+	{
+		var exprDscrStatus = "<exprDesrStatus>";
+
+		// section I: Experiment Abstract, section II: Applications included in experiment, section III: Nodes included in experiment
+
+		if($(objExprDscr).find('experimentAbstract').find('duration').is(':empty'))
+			exprDscrStatus = exprDscrStatus + "<error type='Empty experiment duration' section='I' />";
+
+		if($(objExprDscr).find('appConfiguration').find('app').length == 0)
+			exprDscrStatus = exprDscrStatus + "<error type='There is no application defined for this experiment' section='II' />";
+
+
+		$(objExprDscr).find('appConfiguration').find('app').each(function()
+		{
+			if($(this).attr('name') == "")
+				exprDscrStatus = exprDscrStatus + "<error type='A missing binary file to one of your custom applications' section='II' />";
+		});
+
+		$(objExprDscr).find('appConfiguration').find('app').each(function()
+		{
+			var appName = $(this).attr('name');
+			$(this).find('inputFormat').find('parameter').each(function()
+			{
+				if($(this).attr('name') == "")
+					exprDscrStatus = exprDscrStatus + "<error type='Application " + appName + " has defined an empty input mnemonic field' section='II' />";
+			});
+
+			$(this).find('outputFormat').find('mp').each(function()
+			{
+				var MPName = $(this).attr('name');
+				if(MPName == "")
+					exprDscrStatus = exprDscrStatus + "<error type='Application " + appName + " has defined an empty measurment point' section='II' />";
+				else if($(this).find('parameter').length == 0)
+					exprDscrStatus = exprDscrStatus + "<error type='Application " + appName + " (MP = " + MPName + ") has not yet defined an output field' section='II' />";
+				else
+					$(this).find('parameter').each(function()
+					{
+						if($(this).attr('name') == "")
+							exprDscrStatus = exprDscrStatus + "<error type='Application " + appName + " (MP = " + MPName + ") has defined an empty output Field' section='II' />";
+					});
+			});
+		});
+
+		if($(objExprDscr).find('nodeConfiguration').find('groupInst').length == 0)
+			exprDscrStatus = exprDscrStatus + "<error type='There is not a single node or group of nodes reserved for this experiment' section='III' />";
+
+		var appArray = [];
+		$(objExprDscr).find('appConfiguration').find('app').each(function()
+		{
+			appArray.push($(this).attr("name"));
+		});
+		if(appArray.length != jQuery.unique(appArray).length)
+			exprDscrStatus = exprDscrStatus + "<error type='Duplicate application definition' section='II' />";
+
+		var nodeListArray = [];
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			// Sort the nodeList with in a single group and join them together to form a string representation
+			nodeListArray.push($(this).attr("nodeList").split(',').sort().join());
+		});
+		if(nodeListArray.length != jQuery.unique(nodeListArray).length)
+			exprDscrStatus = exprDscrStatus + "<error type='Duplicate group of nodes' section='III' />";
+
+		var counter = 1;
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr("name") == "")
+				exprDscrStatus = exprDscrStatus + "<error type='Group " + counter + " has empty group name' section='III' />";
+			counter = counter + 1;
+		});
+
+		var groupNameArray = [];
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			groupNameArray.push($(this).attr("name"));
+		});
+		if(groupNameArray.length != jQuery.unique(groupNameArray).length)
+			exprDscrStatus = exprDscrStatus + "<error type='Duplicate group name' section='III' />";
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				if($(this).find('interface').length == 0)
+					exprDscrStatus = exprDscrStatus + "<error type='No interface created to the group " + $(this).attr('name') + "' section='III' />";
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				var interfaceArray = [];
+				$(this).find('interface').each(function()
+				{
+					interfaceArray.push($(this).attr("name"));
+				});
+
+				if(interfaceArray.length != jQuery.unique(interfaceArray).length)
+					exprDscrStatus = exprDscrStatus + "<error type='Duplicate interface defined for the group " + $(this).attr("name") + "' section='III' />";
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				var groupName = $(this).attr('name');
+				$(this).find('interface').each(function()
+				{
+					if($(this).attr("essid") == "")
+						exprDscrStatus = exprDscrStatus + "<error type='The group " + groupName + " has empty ESSID field' section='III' />";
+				});
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				var groupName = $(this).attr('name');
+				$(this).find('interface').each(function()
+				{
+					if($(this).attr("ip") == "")
+						exprDscrStatus = exprDscrStatus + "<error type='The group " + groupName + " has empty IP address field' section='III' />";
+				});
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				var groupName = $(this).attr('name');
+				$(this).find('interface').each(function()
+				{
+					var ip = $(this).attr("ip").split('.');
+					if(ip.length != 4 || ip[0] != "192" || ip[1] != "168" || (ip[2] == "" || parseInt(ip[2]) < 0 || parseInt(ip[2]) > 255) || (ip[3] == "" || parseInt(ip[3]) < 1 || parseInt(ip[3]) > 254))
+						exprDscrStatus = exprDscrStatus + "<error type='The group " + groupName + " has an invalid IP address. Only Use class C private address range (i.e. 192.168/16)' section='III' />";
+				});
+			}
+		});
+
+		var IPAddressArray = [];
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				$(this).find('interface').each(function()
+				{
+					IPAddressArray.push($(this).attr("ip"));
+				});
+			}
+		});
+		if(IPAddressArray.length != jQuery.unique(IPAddressArray).length)
+			exprDscrStatus = exprDscrStatus + "<error type='Duplicate IP address' section='III' />";
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				if($(this).find('appInst').length == 0)
+					exprDscrStatus = exprDscrStatus + "<error type='There is no application added to the group " + $(this).attr('name') + "' section='III' />";
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var platform = $(this).attr('platform');
+			$(this).find('appInst').each(function()
+			{
+				if($(this).attr('name') == "null")
+					exprDscrStatus = exprDscrStatus + "<error type='There is no application defined for " + platform + " platform' section='II/III' />";
+			});
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var groupName = $(this).attr('name');
+			$(this).find('appInst').each(function()
+			{
+				if($(this).attr('id') == "")
+					exprDscrStatus = exprDscrStatus + "<error type='Application added to the group " + groupName + " has not defined an instance ID' section='III' />";
+			});
+		});
+
+		var instIDArray = [];
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			$(this).find('appInst').each(function()
+			{
+				instIDArray.push($(this).attr("id"));
+			});
+		});
+		if(instIDArray.length != jQuery.unique(instIDArray).length)
+			exprDscrStatus = exprDscrStatus + "<error type='Duplicate instance ID' section='III' />";
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				var groupName = $(this).attr('name');
+				$(this).find('appInst').each(function()
+				{
+					var parameterArray = [];
+					$(this).find('parameter').each(function()
+					{
+						parameterArray.push($(this).attr("name"));
+					});
+					if(parameterArray.length != jQuery.unique(parameterArray).length)
+						exprDscrStatus = exprDscrStatus + "<error type='Group " + groupName + " has duplicate parameter for the application " + $(this).attr('name') + " with instance ID " + $(this).attr('id') + "' section='III' />";
+				});
+			}
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var groupNameInstIDArray = [];
+			$(objExprDscr).find('TLConfiguration').find('startAPP').each(function()
+			{
+				groupNameInstIDArray.push($(this).attr("groupName") + $(this).attr("id"));
+			});
+
+			var groupName = $(this).attr('name');
+			$(this).find('appInst').each(function()
+			{
+				var instID = $(this).attr('id');
+				if(jQuery.inArray(groupName+instID, groupNameInstIDArray) == -1)
+					exprDscrStatus = exprDscrStatus + "<error type='Group " + groupName + " has an empty timeline for the application " + $(this).attr('name') + " with instance ID " + instID + "' section='III' />";
+			});
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var groupName = $(this).attr('name');
+			$(this).find('execProg').each(function()
+			{
+				if($(this).attr('cmd') == "")
+					exprDscrStatus = exprDscrStatus + "<error type='Empty program command defined in the group " + groupName + "' section='III' />";
+			});
+		});
+
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var groupNameExecCmdArray = [];
+			$(objExprDscr).find('TLConfiguration').find('groupExec').each(function()
+			{
+				groupNameExecCmdArray.push($(this).attr("groupName") + $(this).attr("cmd"));
+			});
+
+			var groupName = $(this).attr('name');
+			$(this).find('execProg').each(function()
+			{
+				var execCmd = $(this).attr('cmd');
+				if(jQuery.inArray(groupName+execCmd, groupNameExecCmdArray) == -1)
+					exprDscrStatus = exprDscrStatus + "<error type='At least one excutable program in the Group " + groupName + " has an empty timeline' section='III' />";
+			});
+		});
+
+		$(objExprDscr).find('appConfiguration').find('app').each(function()
+		{
+			if($(this).attr('platform') == "x86Linux")
+			{
+				if($(this).find('inputFormat').find('parameter').length == 0)
+					exprDscrStatus = exprDscrStatus + "<warning type='Input format is not defined for the application " + $(this).attr('name') + "' section='II' />";
+
+				if($(this).find('outputFormat').find('parameter').length == 0)
+					exprDscrStatus = exprDscrStatus + "<warning type='Output format is not defined for the application " + $(this).attr('name') + "' section='II' />";
+			}
+		});
+
+		exprDscrStatus = exprDscrStatus + "</exprDesrStatus>";
+		return exprDscrStatus;
+	}
+
+	// This function displays the error messages of the experiment description
+	function displayErrorStatus(objExprDscrStatus)
+	{
+		var counter = 1;
+		var errorStatusText = "<table id='ES'><tr><td colspan='3'><b>Error message</b></td></tr><tr><td><b>No</b></td><td><b>Description</b></td><td><b>Section</b></td></tr>";
+		$(objExprDscrStatus).find('error').each(function()
+		{
+			errorStatusText = errorStatusText + "<tr><td>" + counter + "</td><td>" + $(this).attr("type") + "</td><td>" + $(this).attr("section") + "</td></tr>";
+			counter = counter + 1;
+		});
+		errorStatusText = errorStatusText + "</table>";
+		$(document).find("#errorStatus").html(errorStatusText);
+	}
+
+	// This function displays the warning messages of the experiment description
+	function displayWarningStatus(objExprDscrStatus)
+	{
+		var counter = 1;
+		var warningStatusText = "<table id='ES'><tr><td colspan='3'><b>Warning message</b></td></tr><tr><td><b>No</b></td><td><b>Description</b></td><td><b>Section</b></td></tr>";
+		$(objExprDscrStatus).find('warning').each(function()
+		{
+			warningStatusText = warningStatusText + "<tr><td>" + counter + "</td><td>" + $(this).attr("type") + "</td><td>" + $(this).attr("section") + "</td></tr>";
+			counter = counter + 1;
+		});
+		warningStatusText = warningStatusText + "</table>";
+		$(document).find("#warningStatus").html(warningStatusText);
+	}
+
+	// This function generates OEDL (OMF Experiment Description Language) format of the experiment description
+	function genOEDL(objExprDscr)
+	{
+		var exprDscrOEDL = "";
+
+		// application definition section
+		exprDscrOEDL = exprDscrOEDL + "### Application definitions ###\n";
+		$(objExprDscr).find('appConfiguration').find('app').each(function()
+		{
+			// application definition is added only to default applications
+			if($(this).attr('type') == 'default')
+			{
+				$.ajax
+				({
+					async: false,
+					url:"event_handler.php?event=loadAppDef" + "&appPath=default_bin/" + $(this).attr('name') + ".appDef",
+					success:function(result)
+					{
+						exprDscrOEDL = exprDscrOEDL + result;
+					}
+				});
+			}
+		});
+
+		// property definition section
+		exprDscrOEDL = exprDscrOEDL + "#### Property definitions ####\n";
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			exprDscrOEDL = exprDscrOEDL + "# Start input definition	\n";
+			$(this).find('appInstConfiguration').find('appInst').each(function()
+			{
+				var appID = $(this).attr('id');
+				var appName = $(this).attr('name');
+				$(this).find('argument').find('parameter').each(function()
+				{
+					var parName = $(this).attr('name');
+					var parValue = $(this).attr('value');
+					$(objExprDscr).find('appConfiguration').find('app').each(function()
+					{
+						if($(this).attr('name') == appName)
+						{
+							$(this).find('inputFormat').find('parameter').each(function()
+							{
+								if($(this).attr('name') == parName && $(this).attr('type') == 'string')
+									exprDscrOEDL = exprDscrOEDL + "defProperty('" + appID + "_" + parName + "','" + parValue + "','')	\n";
+								else if($(this).attr('name') == parName && $(this).attr('type') != 'string')
+									exprDscrOEDL = exprDscrOEDL + "defProperty('" + appID + "_" + parName + "'," + parValue + ",'')	\n";
+							});
+						}
+					});
+				});
+			});
+			exprDscrOEDL = exprDscrOEDL + "# End input definition	\n\n";
+
+			var groupName = $(this).attr('name');
+			$(this).find('interface').each(function()
+			{
+				var intType = parseInt($(this).attr('channel'))>14?'a':'g';
+
+				exprDscrOEDL = exprDscrOEDL + "defProperty('" + groupName + "_mode','" + $(this).attr('mode') + "','')	\n";
+				exprDscrOEDL = exprDscrOEDL + "defProperty('" + groupName + "_type','" + intType + "','')	\n";
+				exprDscrOEDL = exprDscrOEDL + "defProperty('" + groupName + "_channel','" + $(this).attr('channel') + "','')	\n";
+				exprDscrOEDL = exprDscrOEDL + "defProperty('" + groupName + "_essid','" + $(this).attr('essid') + "','')	\n";
+				exprDscrOEDL = exprDscrOEDL + "defProperty('" + groupName + "_ip','" + $(this).attr('ip') + "','')	\n";
+			});
+
+			exprDscrOEDL = exprDscrOEDL + "\n";
+		});
+
+		// group definition section
+		exprDscrOEDL = exprDscrOEDL + "#### Group definitions ####\n";
+		$(objExprDscr).find('nodeConfiguration').find('groupInst').each(function()
+		{
+			var groupName = $(this).attr('name');
+			var nodeList = $(this).attr('nodeList').split(',');
+			var selectorList = "";
+			for(var i=0; i<nodeList.length; i++)
+			{
+				selectorList = selectorList + "'" + nodeList[i].replace('Zotac','omf.ibbt.open.node') + "', ";
+			}
+			selectorList = selectorList.substring(0,selectorList.length-2);
+
+			var groupState = "ADD_GROUP_ITEM";	var AppMPArray = [];
+			exprDscrOEDL = exprDscrOEDL + "defGroup('" + groupName + "', [" + selectorList + "]) {|node|	\n";
+			$(this).find('appInstConfiguration').find('appInst').each(function()
+			{
+				var appID = $(this).attr('id');
+
+				var appName = $(this).attr('name');
+				var MPName = $(this).attr('report');
+
+				exprDscrOEDL = exprDscrOEDL + "\tnode.addApplication('" + appName + "',{:id => '" + appID + "'}) {|" + appID + "|	\n";
+				$(this).find('argument').find('parameter').each(function()
+				{
+					exprDscrOEDL = exprDscrOEDL + "\t\t" + appID + ".setProperty('" + $(this).attr('name') + "', property." + appID + "_" + $(this).attr('name') + ")	\n";
+				});
+
+				if(MPName != "null")	// if it is a reporting application
+				{
+					exprDscrOEDL = exprDscrOEDL + "\n\t\t" + appID + ".measure('" + MPName + "', :samples=>1)	\n";
+				}
+				exprDscrOEDL = exprDscrOEDL + "\t}	\n\n";
+
+				if(MPName != "null")	// if it is a reporting application
+				{
+					// sequence numbers are used in order to uniquely identify measurments from two or more processes having identical application/measurment points
+					var index = jQuery.inArray(appName + "_" + MPName, AppMPArray);
+					if(index == -1)
+					{
+						AppMPArray.push(appName + "_" + MPName,0);
+						var seqNo = 0;
+					}
+					else
+					{
+						AppMPArray[index+1] = AppMPArray[index+1] + 1;
+						var seqNo = AppMPArray[index+1];
+					}
+
+					if(groupState == "ADD_GROUP_ITEM")
+					{
+						exprDscrOEDL = exprDscrOEDL + "=begin	\n<Group name='" + groupName + "'>	\n=end	\n";
+						groupState = "GROUP_ITEM_ADDED";
+					}
+
+					// If last 6 characters of exprDscrOEDL are identical to "=end\t\n", then stop writing the string "=begin\t\n"
+					if(exprDscrOEDL.substring(exprDscrOEDL.length-6,exprDscrOEDL.length) == "=end\t\n")
+						exprDscrOEDL = exprDscrOEDL.substring(0,exprDscrOEDL.length-6) + "\t<App name='" + appName + "' id='" + appID + "'>	\n";
+					else
+						exprDscrOEDL = exprDscrOEDL + "=begin	\n\t<App name='" + appName + "' id='" + appID + "'>	\n";
+
+					exprDscrOEDL = exprDscrOEDL + "\t\t<MP name='" + MPName + "' seqNo='" + seqNo + "'>	\n";
+					$(objExprDscr).find('appConfiguration').find('app').each(function()
+					{
+						if($(this).attr('name') == appName)
+						{
+							$(this).find('outputFormat').find('mp').each(function()
+							{
+								if($(this).attr('name') == MPName)
+									$(this).find('parameter').each(function()
+									{
+										exprDscrOEDL = exprDscrOEDL + "\t\t\t<metric name='" + $(this).attr('name') + "' type='" + $(this).attr('type') + "' unit='" + $(this).attr('unit') + "' />	\n";
+									});
+							});
+						}
+					});
+					exprDscrOEDL = exprDscrOEDL + "\t\t</MP>	\n";
+					exprDscrOEDL = exprDscrOEDL + "\t</App>	\n=end	\n";
+				}
+			});
+
+			if(groupState == "GROUP_ITEM_ADDED")
+			{
+				// If last 6 characters of exprDscrOEDL are identical to "=end\t\n", then stop writing the string "=begin\t\n"
+				if(exprDscrOEDL.substring(exprDscrOEDL.length-6,exprDscrOEDL.length) == "=end\t\n")
+					exprDscrOEDL = exprDscrOEDL.substring(0,exprDscrOEDL.length-6) + "</Group>	\n=end	\n\n";
+				else
+					exprDscrOEDL = exprDscrOEDL + "=begin	\n</Group>	\n=end	\n\n";
+			}
+
+			var groupName = $(this).attr('name');
+			$(this).find('interface').each(function()
+			{
+				var intType = parseInt($(this).attr('channel'))>14?'a':'g';
+				if($(this).attr('name') == 'wlan0')
+				{
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w0.mode = property." + groupName + "_mode	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w0.type = property." + groupName + "_type	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w0.channel = property." + groupName + "_channel	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w0.essid = property." + groupName + "_essid	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w0.ip = property." + groupName + "_ip	\n";
+				}
+				else if($(this).attr('name') == 'wlan1')
+				{
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w1.mode = property." + groupName + "_mode	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w1.type = property." + groupName + "_type	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w1.channel = property." + groupName + "_channel	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w1.essid = property." + groupName + "_essid	\n";
+					exprDscrOEDL = exprDscrOEDL + "\tnode.net.w1.ip = property." + groupName + "_ip	\n";
+				}
+				exprDscrOEDL = exprDscrOEDL + "\n";
+			});
+
+			exprDscrOEDL = exprDscrOEDL + "}	\n";
+		});
+
+		// timeline definition section
+		var lastat = 0;
+
+		exprDscrOEDL = exprDscrOEDL + "#### Applications timeline definition ####\n";
+		exprDscrOEDL = exprDscrOEDL + "onEvent(:ALL_UP_AND_INSTALLED) {|event|	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tinfo 'iPerf experiment - wait for interfaces to come up'	\n";
+		exprDscrOEDL = exprDscrOEDL + "\twait 10	\n\n";
+		$(objExprDscr).find('TLConfiguration').children().each(function()
+		{
+			var at = parseInt($(this).attr('at'));
+			if(at > lastat)
+				exprDscrOEDL = exprDscrOEDL + "\twait " + (at-lastat) + "	\n";
+			lastat = at;
+
+			if($(this)[0].tagName == 'startAPP')
+				exprDscrOEDL = exprDscrOEDL + "\tgroup('" + $(this).attr('groupName') + "').startApplication('" + $(this).attr('id') + "')	\n";
+			else if($(this)[0].tagName == 'stopAPP')
+				exprDscrOEDL = exprDscrOEDL + "\tgroup('" + $(this).attr('groupName') + "').stopApplication('" + $(this).attr('id') + "')	\n";
+			else if($(this)[0].tagName == 'groupExec')
+				exprDscrOEDL = exprDscrOEDL + "\tgroup('" + $(this).attr('groupName') + "').exec('" + $(this).attr('cmd') + "')	\n";
+			else if($(this)[0].tagName == 'sendMsg')
+				exprDscrOEDL = exprDscrOEDL + "\tgroup('" + $(this).attr('groupName') + "').sendMessage('" + $(this).attr('id') + "', '" + $(this).attr('MSG') + "')	\n";
+		});
+		exprDscrOEDL = exprDscrOEDL + "}	\n\n";
+
+		exprDscrOEDL = exprDscrOEDL + "defEvent(:APP_COMPLETED)  {|event|	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tapp_status = allGroups.state('apps/app/status/@value')	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tinfo \"Status of Apps:  #{app_status.inspect}\"	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tevent.fire if !app_status.nil? && allEqual(app_status, 'DONE.OK')	\n";
+		exprDscrOEDL = exprDscrOEDL + "}	\n\n";
+
+		exprDscrOEDL = exprDscrOEDL + "onEvent(:APP_COMPLETED) {|event|	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tinfo 'All applications are stopped now...'	\n";
+		exprDscrOEDL = exprDscrOEDL + "\tExperiment.done	\n";
+		exprDscrOEDL = exprDscrOEDL + "}	\n";
+
+		return exprDscrOEDL;
+	}
+
+	// function to convert XML DOM object to string representation
+	function objToStrXML(obj)
+	{
+		strXML = strXML + "<" + $(obj)[0].tagName;
+		$(obj.attributes).each(function()
+		{
+			strXML = strXML + ' ' + this.nodeName + '="' + this.nodeValue + '"';
+		});
+		strXML = strXML + ">";
+		
+		if($(obj).children().length == "0")
+			strXML = strXML + $(obj).text();
+		else
+			$(obj).children().each(function()
+			{
+				objToStrXML(this);
+			});
+		
+		strXML = strXML + "</" + $(obj)[0].tagName + ">";
+
+		return strXML;		
+	}
+	
+	function previous(event)
+	{
+		window.name = "<experimentDescription>" + strExprAbst + strAppConfig + saveNodeConfig() + saveTLconfig() + "</experimentDescription>";
+		window.location = "application.html";
+	}
+	
+	function abstractPage(event)
+	{
+		window.name = "<experimentDescription>" + strExprAbst + strAppConfig + saveNodeConfig() + saveTLconfig() + "</experimentDescription>";
+		window.location = "exprAbs.html";
+	}
+
+	// function to save node configuration before leaving the page
+	function saveNodeConfig()
+	{
+		var strNodeConfig = "<nodeConfiguration>";
+		$(document).find('p').each(function()
+		{
+			if($(this)[0].id!="newGroup" && $(this)[0].id!="addGroup" && $(this).find('#nodeList').text().length!="0")
+			{
+				if($(this).find('#platform').val() == "x86Linux")
+				{
+					var groupName = $(this).find("#groupName").val();
+					var nodeList = "";
+					$(this).find("#nodeList").find('td').each(function()
+					{
+						nodeList = nodeList + $(this).text() + ",";
+					});
+					nodeList = nodeList.substring(0,nodeList.length-1);
+					image = $(this).find("#x86ImageList").val();
+
+					strNodeConfig = strNodeConfig + "<groupInst";
+					strNodeConfig = strNodeConfig + ' platform="x86Linux"';
+					strNodeConfig = strNodeConfig + ' name="' + groupName + '"';
+					strNodeConfig = strNodeConfig + ' nodeList="' + nodeList + '"';
+					strNodeConfig = strNodeConfig + ' image="' + image + '">';
+					strNodeConfig = strNodeConfig + "<appInstConfiguration>";
+					$(this).find('#appConfig').find('#tabs-1').children().children().children().each(function()
+					{
+						if($(this)[0].id!="" && $(this)[0].id!="addAPP")
+						{
+							appReport = $(this).find('#appReport').val();
+							appName = $(this).find("#appName").val();
+							appID = $(this).find("#appID").val();
+							MSG = $(this).find("#MSG").val();
+							
+							strNodeConfig = strNodeConfig + "<appInst";
+							strNodeConfig = strNodeConfig + ' report="' + appReport + '"';
+							strNodeConfig = strNodeConfig + ' name="' + appName + '"';
+							strNodeConfig = strNodeConfig + ' id="' + appID + '"';
+							strNodeConfig = strNodeConfig + ' MSG="' + MSG + '">';
+							strNodeConfig = strNodeConfig + "<argument>";
+							$(this).find('#parameter').find('tr').each(function()
+							{
+								if($(this)[0].id!="" && $(this)[0].id!="addPar" && $(this)[0].id!="addParButton")
+								{
+									if($(this).find('#parName').val() !="")
+									{
+										parName = $(this).find('#parName').val();
+										parValue = $(this).find('#parValue').val();
+										
+										strNodeConfig = strNodeConfig + "<parameter name='" + parName + "' value='" + parValue + "' />";
+									}
+								}
+							});
+							strNodeConfig = strNodeConfig + "</argument>";
+							strNodeConfig = strNodeConfig + "</appInst>";
+
+							color="#5588ee";
+							$(this).find('#timeline').find('#TL').find('td').each(function()
+							{
+								if($(this).attr('bgcolor') == color)
+								{
+									time = $(this).attr("id");
+									if(color == "#5588ee")
+									{
+										TLArray.push(["startAPP",groupName,appID,time]);
+										color="#FFFFFF";
+									}
+									else if(color == "#FFFFFF")
+									{
+										TLArray.push(["stopAPP",groupName,appID,time-1]);
+										color="#5588ee";
+									}
+								}
+							});
+
+							// Routine to add stopAPP entry when the last timeline cell is selected
+							if(color == "#FFFFFF")
+							{
+								if(strExprAbst.length > 0)
+								{
+									objExprAbst = $.parseXML(strExprAbst);
+									var duration = $(objExprAbst).find("duration").text();
+				
+									TLArray.push(["stopAPP",groupName,appID,duration]);
+								}
+							}
+
+							$(this).find('#sendMsg').find('#TLMsg').find('td').each(function()
+							{
+								if($(this).attr("bgcolor") == "#5588ee")
+									TLArray.push(["sendMsg",groupName,appID,$(this).attr("id"),MSG]);
+							});
+						}
+					});
+					$(this).find('#appConfig').find('#tabs-2').children().children().children().each(function()
+					{
+						if($(this)[0].id!="" && $(this)[0].id!="execProg")
+						{
+							execCmd = $(this).find('#execCmd').val();
+							strNodeConfig = strNodeConfig + "<execProg cmd='" + execCmd + "'/>";
+							$(this).find('#timeline').find('#TL').find('td').each(function()
+							{
+								if($(this).attr('bgcolor') == "#5588ee")
+									TLArray.push(["groupExec",groupName,execCmd,$(this).attr("id")]);
+							});
+						}
+					});
+					strNodeConfig = strNodeConfig + "</appInstConfiguration>";
+					$(this).find('#intConfig').find('tr').each(function()
+					{
+						if($(this)[0].id!="" && $(this)[0].id!="addInt")
+						{
+							strNodeConfig = strNodeConfig + "<interface";
+							strNodeConfig = strNodeConfig + ' name="' + $(this).find("#intName").val() + '"';
+							strNodeConfig = strNodeConfig + ' mode="' + $(this).find("#wirelessMode").val() + '"';
+							strNodeConfig = strNodeConfig + ' channel="' + $(this).find("#channel").val() + '"';
+							strNodeConfig = strNodeConfig + ' essid="' + $(this).find("#essid").val() + '"';
+							strNodeConfig = strNodeConfig + ' ip="' + $(this).find("#ip").val() + '" />';
+						}
+					});
+					strNodeConfig = strNodeConfig + "</groupInst>";
+				}
+				else if($(this).find('#platform').val() == "tinyOS")
+				{
+					var groupName = $(this).find("#groupName").val();
+					var nodeList = "";
+					$(this).find("#nodeList").find('td').each(function()
+					{
+						nodeList = nodeList + $(this).text() + ",";
+					});
+					nodeList = nodeList.substring(0,nodeList.length-1);
+
+					appID = $(this).find("#appID").val();
+					appReport = $(this).find('#appReport').attr('checked')?"yes":"no";
+					appName = $(this).find("#tinyOSImageList").val();
+
+					strNodeConfig = strNodeConfig + '<groupInst platform="tinyOS" name="' + groupName + '" nodeList="' + nodeList + '" image="select image">';
+					strNodeConfig = strNodeConfig + '<appInstConfiguration>';
+					strNodeConfig = strNodeConfig + '<appInst report="' + appReport + '" name="' + appName + '" id="' + appID +'"></appInst>';
+					strNodeConfig = strNodeConfig + '</appInstConfiguration>';
+					strNodeConfig = strNodeConfig + "</groupInst>";
+
+					color="#5588ee";
+					$(this).find('#timeline').find('#TL').find('td').each(function()
+					{
+						if($(this).attr('bgcolor') == color)
+						{
+							time = $(this).attr("id");
+							if(color=="#5588ee")
+							{
+								TLArray.push(["startAPP",groupName,appID,time]);
+								color="#FFFFFF";
+							}
+							else if(color=="#FFFFFF")
+							{
+								TLArray.push(["stopAPP",groupName,appID,time-1]);
+								color="#5588ee";
+							}
+						}
+					});
+
+					// Routine to add stopAPP entry when the last timeline cell is selected
+					if(color == "#FFFFFF")
+					{
+						if(strExprAbst.length > 0)
+						{
+							objExprAbst = $.parseXML(strExprAbst);
+							var duration = $(objExprAbst).find("duration").text();
+		
+							TLArray.push(["stopAPP",groupName,appID,duration]);
+						}
+					}
+				}			
+			}
+		});
+		strNodeConfig = strNodeConfig + "</nodeConfiguration>";
+		return strNodeConfig;
+	}
+
+	// function to save timeline configuration before leaving the page
+	function saveTLconfig()
+	{
+		var strTLconfig = '<TLConfiguration>';
+		TLArray.sort(function(a,b){return a[3]-b[3]});
+		$(TLArray).each(function()
+		{
+			if(this[0] == "startAPP" || this[0] == "stopAPP")
+				strTLconfig = strTLconfig + '<' + this[0] + ' groupName="' + this[1] + '" id="' + this[2] + '" at="' + this[3] + '"/>';
+			else if(this[0] == "groupExec")
+				strTLconfig = strTLconfig + '<' + this[0] + ' groupName="' + this[1] + '" cmd="' + this[2] + '" at="' + this[3] + '"/>';
+			else if(this[0] == "sendMsg")
+				strTLconfig = strTLconfig + '<' + this[0] + ' groupName="' + this[1] + '" id="' + this[2] + '" at="' + this[3] + '" MSG="' + this[4] + '"/>';
+		});
+		strTLconfig = strTLconfig + '</TLConfiguration>';
+
+		TLArray = [];
+		return strTLconfig;
+	}
+	
+	function home(event)
+	{
+		window.location = "exprDef.html";
+	}
+		
+	// function to generate random string
+	function randomString()
+	{
+		var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+		var string_length = 8;
+		var randomstring = '';
+		for (var i=0; i<string_length; i++) 
+		{
+			var rnum = Math.floor(Math.random() * chars.length);
+			randomstring += chars.substring(rnum,rnum+1);
+		}
+		return randomstring;
+	}
+	</script>
+</head>
+<body>
+	<table>
+	<tr>
+		<td><a href='#' style='text-decoration: none' id="abstractPage" title='define your experiment'>Experiment Abstract</a></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><a href='#' style='text-decoration: none' id="previous" title='Add applications to your experiment'>Applications included in experiment</a></td>
+		<td><img src='figures/double_arrow.png'></td>
+		<td><b><a href='#' style='text-decoration: none' title='Select nodes to run your experiment applications'>Nodes included in experiment</a></b></td>
+	</tr>
+	<tr><td colspan=5><hr/></td></tr>
+	</table>
+	<h3>Nodes included in experiment</h3>
+	<p id="newGroup"></p>
+	<p id="addGroup"><button type="button">Add Group</button></p>
+	<table>
+	<tr>
+		<td><button id='previous'><img align='middle' src='figures/previous.png' /></button></td>
+		<td><button id='home'><img align='middle' src='figures/home.png'/></button></td>
+		<td><button id='saveConfig'>Save Configuration</button></td>
+		<td id='configFile'></td>
+	</tr>
+	</table>
+	<p id="errorStatus"></p>
+	<p id="warningStatus"></p>
+</body>
+</html>
+

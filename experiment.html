@@ -1,0 +1,1256 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.flot.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery-timing.min.js"></script>
+	<style type='text/css'>	img{cursor: pointer;}	</style>
+	<script type="text/javascript">
+
+	$(document).ready(function()
+	{
+		var argument = location.search.split('?');
+		var string = argument[1].split('&');
+		var ED_Name = string[0].split('=')[1];
+
+		var perVisMetGroup = string[1].split('=')[1].split('|');
+		var perVisMetTable = [];	var perVisMetSeq = [];
+		var temp1 = string[2].split('=')[1].split('|');	var temp2 = string[3].split('=')[1].split('|');
+		for(var i=0; i<temp1.length; i++)
+		{
+			perVisMetTable.push(temp1[i] + "_" + temp2[i].split(';')[0]);
+			perVisMetSeq.push(temp2[i].split(';')[1]);
+		}
+		var perVisMetName = [];	var perVisMetUnit = [];
+		var temp = string[4].split('=')[1].split('|');
+		for(var i=0; i<temp.length; i++)
+		{
+			perVisMetName.push(temp[i].split(';')[0]);
+			perVisMetUnit.push(temp[i].split(';')[1]);
+		}
+	
+		var prePostEst = string[5].split('=')[1];
+		var scanMethod = string[6].split('=')[1];
+		var centerFreqWI_FI = string[7].split('=')[1];
+		if(scanMethod == "20MHz_Band")	updatePar("interference_estimation/detectWiFiChannel.rb","CHANNEL",freqToChannel(centerFreqWI_FI));
+		var rounds = (string[7].split('=')[1] == "") ? 1 : parseInt(string[8].split('=')[1]);
+
+		var parOptType = string[9].split('=')[1];
+		// --------------------------------------------------------------------------------- //
+		if(parOptType == 'SSRuC')
+		{
+			var objParMetName = string[10].split('=')[1];
+
+			var perParMetGroup = string[11].split('=')[1].split('|');
+			var perParMetTable = [];	var perParMetSeq = [];
+			var temp1 = string[12].split('=')[1].split('|');	var temp2 = string[13].split('=')[1].split('|');
+			for(var i=0; i<temp1.length; i++)
+			{
+				perParMetTable.push(temp1[i] + "_" + temp2[i].split(';')[0]);
+				perParMetSeq.push(temp2[i].split(';')[1]);
+			}
+			var perParMetName = [];	var perParMetUnit = [];
+			var temp = string[14].split('=')[1].split('|');
+			for(var i=0; i<temp.length; i++)
+			{
+				perParMetName.push(temp[i].split(';')[0]);
+				perParMetUnit.push(temp[i].split(';')[1]);
+			}
+			var perParMetAggr = string[15].split('=')[1].split('|');
+			var perParMetOper = string[16].split('=')[1].split('|');
+			var perParContext = string[17].split('=')[1];
+	
+			var startVal = (string[18].split('=')[1] == "") ? 1.0 : parseFloat(string[18].split('=')[1]);
+			var endVal = (string[19].split('=')[1] == "") ? 1.0 : parseFloat(string[19].split('=')[1]);
+			var stepSize = (string[20].split('=')[1] == "") ? 1.0 : parseFloat(string[20].split('=')[1]);
+			var stepSizeRedRate = (string[21].split('=')[1] == "") ? 0.5 : parseFloat(string[21].split('=')[1]);
+			var stepSizeLimit = (string[22].split('=')[1] == "") ? 1.0 : parseFloat(string[22].split('=')[1]);
+
+			// modify the selected objective parameter using the starting value
+			updatePar(ED_Name,objParMetName,startVal);
+
+			var workingVal = startVal;
+			var bestRunExprIDArray = [];
+		}
+		else if(parOptType == 'IVuC')
+		{
+			var objParMetName = string[10].split('=')[1];
+
+			var perParMetGroup = string[11].split('=')[1].split('|');
+			var perParMetTable = [];	var perParMetSeq = [];
+			var temp1 = string[12].split('=')[1].split('|');	var temp2 = string[13].split('=')[1].split('|');
+			for(var i=0; i<temp1.length; i++)
+			{
+				perParMetTable.push(temp1[i] + "_" + temp2[i].split(';')[0]);
+				perParMetSeq.push(temp2[i].split(';')[1]);
+			}
+			var perParMetName = [];	var perParMetUnit = [];
+			var temp = string[14].split('=')[1].split('|');
+			for(var i=0; i<temp.length; i++)
+			{
+				perParMetName.push(temp[i].split(';')[0]);
+				perParMetUnit.push(temp[i].split(';')[1]);
+			}
+			var perParMetAggr = string[15].split('=')[1].split('|');
+			var perParMetOper = string[16].split('=')[1].split('|');
+			var perParCondType = string[17].split('=')[1];
+			var perParCondValue = (string[18].split('=')[1] == "") ? 0.1 : parseFloat(string[18].split('=')[1]);
+	
+			var startVal = (string[19].split('=')[1] == "") ? 1.0 : parseFloat(string[19].split('=')[1]);
+			var endVal = (string[20].split('=')[1] == "") ? 1.0 : parseFloat(string[20].split('=')[1]);
+			var stepSize = (string[21].split('=')[1] == "") ? 1.0 : parseFloat(string[21].split('=')[1]);
+			var stepSizeRedRate = (string[22].split('=')[1] == "") ? 0.5 : parseFloat(string[22].split('=')[1]);
+			var stepSizeLimit = (string[23].split('=')[1] == "") ? 1.0 : parseFloat(string[23].split('=')[1]);
+
+			// modify the selected objective parameter using the starting value
+			updatePar(ED_Name,objParMetName,startVal);
+
+			var workingVal = startVal;
+			var bestRunExprIDArray = [];
+		}
+		// --------------------------------------------------------------------------------- //
+		var totalDuration = 0;
+		var exprCount = 1;	var runCount = 0;	var pIDObj;
+		var SINGLE_EXPERIMENT_STATE = "NOT_RUNNING";	var PRE_DUE_POST_STATE = "IDLE";	var OVERALL_EXPERIMENT_STATE = "OPTIMIZATION_MODE";
+		var PID = "";	var exprID = "";	var exprLogFile = "";
+		var preExprIDArray = [];	var exprIDArray = [];	var postExprIDArray = [];
+		var preExprLogFileArray = [];	var exprLogFileArray = [];	var postExprLogFileArray = [];
+		var viewHolder = "";
+		var options = { series: { lines: { show: true }, shadowSize: 0 }, yaxis: {min: 0} };
+		var centerFreq;
+		var exprFinished = "";
+
+		doIteration();
+	
+		function doIteration()
+		{
+			if(SINGLE_EXPERIMENT_STATE == "RUNNING")
+			{
+				$.ajax
+				({
+					async:false,
+					type: "POST",
+					url: "event_handler.php?event=exprFinished" + "&exprLogFile=" + exprLogFile + "&PID=" + PID,
+					success: function(result)
+					{
+						exprFinished = result;
+					}
+				});
+
+				if(exprFinished == "NOT_FINISHED")
+				{
+					if(prePostEst == "true")
+					{
+						if(PRE_DUE_POST_STATE == "PRE_EXPR")
+						{
+							viewHolder = "#preExpr" + exprCount + "_" + runCount;
+
+							if($(pIDObj).find('#preExprView' + runCount).find('img').attr('name') == "graph")
+							{
+								var freqBandArray = [];
+								if(scanMethod == "20MHz_Band")
+								{
+									var graphDomain = "time";
+									freqBandArray.push("psd");
+								}
+								else if(scanMethod == "2.4GHz")
+								{
+									var graphDomain = $(pIDObj).find('#preExprGraphDomain' + runCount).val();
+									if(graphDomain == "time")
+									{
+										freqBandArray.push($(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprcenterFreq').val());
+									}
+									else if(graphDomain == "freq")
+									{
+										var freqBandStart = $(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprStartFreq').val();
+										freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+										var freqBandEnd = $(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprEndFreq').val();
+										freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+										for(var i=freqBandStart; i<=freqBandEnd; i++)
+											freqBandArray.push('psd' + i);
+									}
+								}
+								var envData = getEnvData(graphDomain,freqBandArray,exprID);
+
+								var USRP62 = [];	var USRP65 = [];	var USRP69 = [];	var USRP75 = [];	var USRP81 = [];	var USRP89 = [];
+								$(envData).find("value").each(function()
+								{
+									if($(this).attr('usrpid') == "62")	USRP62.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "65")	USRP65.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "69")	USRP69.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "75")	USRP75.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "81")	USRP81.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "89")	USRP89.push([$(this).attr('x'), $(this).attr('y')]);
+								});
+								$.plot(viewHolder, [ {label: "USRP62 (dBm)", data: USRP62},	{label: "USRP65 (dBm)", data: USRP65},	{label: "USRP69 (dBm)", data: USRP69},	{label: "USRP75 (dBm)", data: USRP75},	{label: "USRP81 (dBm)", data: USRP81},	{label: "USRP89 (dBm)", data: USRP89} ],  { series: { lines: { show: true }, shadowSize: 0 } });
+							}
+							else if($(pIDObj).find('#preExprView' + runCount).find('img').attr('name') == "log")
+							{
+								$.ajax
+								({
+									async:false,
+									url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + encodeURIComponent(exprLogFile),
+									success:function(result)
+									{
+										$(pIDObj).find(viewHolder).find('textarea').val(result);
+									}
+								});
+							}
+
+							// Animate radio buttons to indicate the experiment is running
+							$(pIDObj).find("input[name=statusPre" + exprCount + "_" + runCount + "]:#"+(totalDuration%3+1)).attr("checked","checked");
+						}
+						else if(PRE_DUE_POST_STATE == "DUE_EXPR")
+						{
+							viewHolder = "#dueExpr" + exprCount + "_" + runCount;
+							if($(pIDObj).find('#dueExprView' + runCount).find('img').attr('name') == "graph")
+							{
+								var data = [];
+								var label = $(pIDObj).find('#label'+runCount).attr('checked')?true:false;
+								if(label == true)
+									for (var i=0;i<perVisMetName.length;i++)
+										data.push({label: perVisMetGroup[i]+"_"+perVisMetName[i]+" ("+perVisMetUnit[i]+")", data: getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprID) });
+								else if(label == false)
+									for (var i=0;i<perVisMetName.length;i++)
+										data.push(getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprID));
+								$.plot(viewHolder, data, options);
+							}
+							else if($(pIDObj).find('#dueExprView' + runCount).find('img').attr('name') == "log")
+							{
+								$.ajax
+								({
+									async:false,
+									url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + encodeURIComponent(exprLogFile),
+									success:function(result)
+									{
+										$(pIDObj).find(viewHolder).find('textarea').val(result);
+									}
+								});
+							}
+
+							// Animate radio buttons to indicate the experiment is running
+							$(pIDObj).find("input[name=statusDue" + exprCount + "_" + runCount + "]:#"+(totalDuration%3+1)).attr("checked","checked");
+						}
+						else if(PRE_DUE_POST_STATE == "POST_EXPR")
+						{
+							viewHolder = "#postExpr" + exprCount + "_" + runCount;
+
+							if($(pIDObj).find('#postExprView' + runCount).find('img').attr('name') == "graph")
+							{
+								var freqBandArray = [];
+								if(scanMethod == "20MHz_Band")
+								{
+									var graphDomain = "time";
+									freqBandArray.push("psd");
+								}
+								else if(scanMethod == "2.4GHz")
+								{
+									var graphDomain = $(pIDObj).find('#postExprGraphDomain' + runCount).val();
+									if(graphDomain == "time")
+									{
+										freqBandArray.push($(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprcenterFreq').val());
+									}
+									else if(graphDomain == "freq")
+									{
+										var freqBandStart = $(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprStartFreq').val();
+										freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+										var freqBandEnd = $(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprEndFreq').val();
+										freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+										for(var i=freqBandStart; i<=freqBandEnd; i++)
+											freqBandArray.push('psd' + i);
+									}
+								}
+								var envData = getEnvData(graphDomain,freqBandArray,exprID);
+
+								var USRP62 = [];	var USRP65 = [];	var USRP69 = [];	var USRP75 = [];	var USRP81 = [];	var USRP89 = [];
+								$(envData).find("value").each(function()
+								{
+									if($(this).attr('usrpid') == "62")	USRP62.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "65")	USRP65.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "69")	USRP69.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "75")	USRP75.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "81")	USRP81.push([$(this).attr('x'), $(this).attr('y')]);
+									if($(this).attr('usrpid') == "89")	USRP89.push([$(this).attr('x'), $(this).attr('y')]);
+								});
+								$.plot(viewHolder, [ {label: "USRP62 (dBm)", data: USRP62},	{label: "USRP65 (dBm)", data: USRP65},	{label: "USRP69 (dBm)", data: USRP69},	{label: "USRP75 (dBm)", data: USRP75},	{label: "USRP81 (dBm)", data: USRP81},	{label: "USRP89 (dBm)", data: USRP89} ],  { series: { lines: { show: true }, shadowSize: 0 } });
+							}
+							else if($(pIDObj).find('#postExprView' + runCount).find('img').attr('name') == "log")
+							{
+								$.ajax
+								({
+									async:false,
+									url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + encodeURIComponent(exprLogFile),
+									success:function(result)
+									{
+										$(pIDObj).find(viewHolder).find('textarea').val(result);
+									}
+								});
+							}
+
+							// Animate radio buttons to indicate the experiment is running
+							$(pIDObj).find("input[name=statusPost" + exprCount + "_" + runCount + "]:#"+(totalDuration%3+1)).attr("checked","checked");
+						}
+					}
+					else if(prePostEst == "false")
+					{
+						viewHolder = "#dueExpr" + exprCount + "_" + runCount;
+						if($(pIDObj).find('#dueExprView' + runCount).find('img').attr('name') == "graph")
+						{
+							var data = [];
+							var label = $(pIDObj).find('#label'+runCount).attr('checked')?true:false;
+							if(label == true)
+								for (var i=0;i<perVisMetName.length;i++)
+									data.push({label: perVisMetGroup[i]+"_"+perVisMetName[i]+" ("+perVisMetUnit[i]+")", data: getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprID) });
+							else if(label == false)
+								for (var i=0;i<perVisMetName.length;i++)
+									data.push(getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprID));
+							$.plot(viewHolder, data, options);
+						}
+						else if($(pIDObj).find('#dueExprView' + runCount).find('img').attr('name') == "log")
+						{
+							$.ajax
+							({
+								async:false,
+								url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + encodeURIComponent(exprLogFile),
+								success:function(result)
+								{
+									$(pIDObj).find(viewHolder).find('textarea').val(result);
+								}
+							});
+						}
+
+						// Animate radio buttons to indicate the experiment is running
+						$(pIDObj).find("input[name=statusDue" + exprCount + "_" + runCount + "]:#"+(totalDuration%3+1)).attr("checked","checked");
+					}
+				}
+				else if(exprFinished == "FINISHED")
+				{
+					if(prePostEst == "true")
+					{
+						if(PRE_DUE_POST_STATE == "PRE_EXPR")
+						{
+							$(pIDObj).find('#preExprStatus' + runCount).html("<b>Finished</b>");
+
+							var freqBandArray = [];
+							if(scanMethod == "20MHz_Band")
+								freqBandArray.push("psd");
+							else if(scanMethod == "2.4GHz")
+							{
+								var graphDomain = $(pIDObj).find('#preExprGraphDomain' + runCount).val();
+								if(graphDomain == "time")
+								{
+									freqBandArray.push($(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprcenterFreq').val());
+								}
+								else if(graphDomain == "freq")
+								{
+									var freqBandStart = $(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprStartFreq').val();
+									freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+									var freqBandEnd = $(pIDObj).find('#preExprFreqCont' + runCount).find('#preExprEndFreq').val();
+									freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+									for(var i=freqBandStart; i<=freqBandEnd; i++)
+										freqBandArray.push('psd' + i);
+								}
+							}
+							var preExprScore = calcPrePostScore(freqBandArray,exprID);
+							$(pIDObj).find('#preExprScore' + runCount).html(preExprScore);
+						}
+						else if(PRE_DUE_POST_STATE == "DUE_EXPR")
+						{
+							$(pIDObj).find('#exprStatus' + runCount).html("<b>Finished</b>");
+							$(pIDObj).off('click','#dueExprStop' + runCount);
+							$(pIDObj).find('#dueExprStop' + runCount).attr('src','figures/sql.png');
+							$(pIDObj).find('#dueExprStop' + runCount).attr('title','execute SQL statement');
+							$(pIDObj).on('click','#dueExprStop' + runCount,{exprID: exprID},executeSQL);
+						}
+						else if(PRE_DUE_POST_STATE == "POST_EXPR")
+						{
+							$(pIDObj).find('#postExprStatus' + runCount).html("<b>Finished</b>");
+
+							var freqBandArray = [];
+							if(scanMethod == "20MHz_Band")
+								freqBandArray.push("psd");
+							else if(scanMethod == "2.4GHz")
+							{
+								var graphDomain = $(pIDObj).find('#postExprGraphDomain' + runCount).val();
+								if(graphDomain == "time")
+								{
+									freqBandArray.push($(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprcenterFreq').val());
+								}
+								else if(graphDomain == "freq")
+								{
+									var freqBandStart = $(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprStartFreq').val();
+									freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+									var freqBandEnd = $(pIDObj).find('#postExprFreqCont' + runCount).find('#postExprEndFreq').val();
+									freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+									for(var i=freqBandStart; i<=freqBandEnd; i++)
+										freqBandArray.push('psd' + i);
+								}
+							}
+							var postExprScore = calcPrePostScore(freqBandArray,exprID);
+							$(pIDObj).find('#postExprScore' + runCount).html(postExprScore);
+						}
+					}
+					else if(prePostEst == "false")
+					{
+						$(pIDObj).find('#exprStatus' + runCount).html("<b>Finished</b>");
+						$(pIDObj).off('click','#dueExprStop' + runCount);
+						$(pIDObj).find('#dueExprStop' + runCount).attr('src','figures/sql.png');
+						$(pIDObj).find('#dueExprStop' + runCount).attr('title','execute SQL statement');
+						$(pIDObj).on('click','#dueExprStop' + runCount,{exprID: exprID},executeSQL);
+					}
+
+					if(runCount == rounds)
+					{
+						if((prePostEst == "true" && PRE_DUE_POST_STATE == "POST_EXPR") || (prePostEst == "false"))
+						{
+							var bestRun = 0;
+							var jsonExprIDArray = JSON.stringify(exprIDArray[exprCount-1]);
+							$.ajax
+							({
+								async:false,
+								type: "POST",
+								url: "correlation.php?event=bestRun" + "&table=" + perVisMetTable[0] + "&seq=" + perVisMetSeq[0] + "&metric=" + perVisMetName[0] + "&group=" + perVisMetGroup[0],
+								data: {data : jsonExprIDArray}, 
+								cache: false,
+								success: function(result)
+								{
+									bestRun = result;
+									$(pIDObj).find("#R" + bestRun).attr('checked', 'checked');
+								}
+							});
+
+							var selectedRunArray = [];
+							$(pIDObj).find("input:checkbox").each(function()
+							{
+								if($(this).attr('id').substring(0,1) == "R")
+									selectedRunArray.push($(this).attr('id'));
+							});
+
+							var jsonSelectedRunArray = JSON.stringify(selectedRunArray);
+							$.ajax
+							({
+								async:false,
+								type: "POST",
+								url: "correlation.php?event=corrMat" + "&table=" + perVisMetTable[0] + "&seq=" + perVisMetSeq[0] + "&metric=" + perVisMetName[0] + "&group=" + perVisMetGroup[0],
+								data: {data : jsonExprIDArray, run : jsonSelectedRunArray}, 
+								cache: false,
+								success: function(corrMat)
+								{
+									$(pIDObj).find("#corrMat").html(corrMat);
+								}
+							});
+
+							// when there is not any optimizer selected, overall experiment will be finished
+							if(parOptType == "null")
+								OVERALL_EXPERIMENT_STATE = "FINISHED";
+							// --------------------------------------------------------------------------------- //
+							else if(parOptType == "SSRuC")
+							{
+								bestRunExprIDArray.push([workingVal, exprIDArray[exprCount-1][bestRun-1]]);
+
+								workingVal = workingVal + stepSize;
+								if(workingVal > endVal)
+								{
+									stepSize = stepSize * stepSizeRedRate;
+									if(stepSize >= stepSizeLimit)
+									{
+										var jsonGroupArray = JSON.stringify(perParMetGroup);
+										var jsonTableArray = JSON.stringify(perParMetTable);
+										var jsonSeqArray = JSON.stringify(perParMetSeq);
+										var jsonMetricArray = JSON.stringify(perParMetName);
+										var jsonAggrArray = JSON.stringify(perParMetAggr);
+										var jsonOperArray = JSON.stringify(perParMetOper);
+										var jsonBestRunExprIDArray = JSON.stringify(bestRunExprIDArray);
+										var localOptimumVal;
+										$.ajax
+										({
+											async:false,
+											type: "POST",
+											url:"event_handler.php?event=searchOptimumVal" + "&context=" + perParContext,
+											data: {jsonGroupArray : jsonGroupArray, jsonTableArray : jsonTableArray, jsonSeqArray : jsonSeqArray, jsonMetricArray : jsonMetricArray, jsonAggrArray : jsonAggrArray, jsonOperArray : jsonOperArray, jsonBestRunExprIDArray : jsonBestRunExprIDArray}, 
+											cache: false,
+											success:function(result)
+											{
+												localOptimumVal = result;
+											}
+										});
+
+										startVal = (parseFloat(localOptimumVal) - (stepSize/(2*stepSizeRedRate)) < startVal)?(startVal):(parseFloat(localOptimumVal) - (stepSize/(2*stepSizeRedRate)));
+										endVal = (parseFloat(localOptimumVal) + (stepSize/(2*stepSizeRedRate)) > endVal)?(endVal):(parseFloat(localOptimumVal) + (stepSize/(2*stepSizeRedRate)));
+										workingVal = startVal;
+										bestRunExprIDArray = [];
+
+										updatePar(ED_Name,objParMetName,workingVal);
+										exprCount++;
+										runCount = 0;
+										PRE_DUE_POST_STATE = "IDLE";
+									}
+									else
+										OVERALL_EXPERIMENT_STATE = "FINISHED";
+								}
+								else
+								{
+									updatePar(ED_Name,objParMetName,workingVal);
+									exprCount++;
+									runCount = 0;
+									PRE_DUE_POST_STATE = "IDLE";
+								}
+							}
+							else if(parOptType == "IVuC")
+							{
+								// calculate the score of the best run
+								var jsonGroupArray = JSON.stringify(perParMetGroup);
+								var jsonTableArray = JSON.stringify(perParMetTable);
+								var jsonSeqArray = JSON.stringify(perParMetSeq);
+								var jsonMetricArray = JSON.stringify(perParMetName);
+								var jsonAggrArray = JSON.stringify(perParMetAggr);
+								var jsonOperArray = JSON.stringify(perParMetOper);
+								var jsonBestRunExprID = JSON.stringify(exprIDArray[exprCount-1][bestRun-1]);
+								var score;
+
+								$.ajax
+								({
+									async: false,
+									type: "POST",
+									url:"event_handler.php?event=calcScore",
+									data: {jsonGroupArray : jsonGroupArray, jsonTableArray : jsonTableArray, jsonSeqArray : jsonSeqArray, jsonMetricArray : jsonMetricArray, jsonAggrArray : jsonAggrArray, jsonOperArray : jsonOperArray, jsonBestRunExprID : jsonBestRunExprID}, 
+									success:function(result)
+									{
+										score = result;
+										$(pIDObj).find("#score" + exprCount).html("<b>" + score + "</b>");
+									}
+								});
+
+								if(perParCondType == "lessThan")
+								{
+									if(score < perParCondValue)
+									{
+										stepSize = stepSize * stepSizeRedRate;
+										if(stepSize >= stepSizeLimit)
+										{
+											workingVal = workingVal - stepSize/stepSizeRedRate + stepSize;
+											updatePar(ED_Name,objParMetName,workingVal);
+											exprCount++;
+											runCount = 0;
+											PRE_DUE_POST_STATE = "IDLE";
+										}
+										else
+											OVERALL_EXPERIMENT_STATE = "FINISHED";
+									}
+									else
+									{
+										workingVal = workingVal + stepSize;
+										if(workingVal <= endVal)
+										{
+											updatePar(ED_Name,objParMetName,workingVal);
+											exprCount++;
+											runCount = 0;
+											PRE_DUE_POST_STATE = "IDLE";
+										}
+										else
+											OVERALL_EXPERIMENT_STATE = "FINISHED";
+									}
+								}
+								else if(perParCondType == "greaterThan")
+								{
+									if(score > perParCondValue)
+									{
+										stepSize = stepSize * stepSizeRedRate;
+										if(stepSize >= stepSizeLimit)
+										{
+											workingVal = workingVal - stepSize/stepSizeRedRate + stepSize;
+											updatePar(ED_Name,objParMetName,workingVal);
+											exprCount++;
+											runCount = 0;
+											PRE_DUE_POST_STATE = "IDLE";
+										}
+										else
+											OVERALL_EXPERIMENT_STATE = "FINISHED";
+									}
+									else
+									{
+										workingVal = workingVal + stepSize;
+										if(workingVal <= endVal)
+										{
+											updatePar(ED_Name,objParMetName,workingVal);
+											exprCount++;
+											runCount = 0;
+											PRE_DUE_POST_STATE = "IDLE";
+										}
+										else
+											OVERALL_EXPERIMENT_STATE = "FINISHED";
+									}
+								}
+							}
+							// --------------------------------------------------------------------------------- //
+						}
+					}
+					else
+					{
+						if((prePostEst == "true" && PRE_DUE_POST_STATE == "POST_EXPR") || (prePostEst == "false"))
+						{
+							runCount++;
+							PRE_DUE_POST_STATE = "IDLE";
+						}
+					}
+					SINGLE_EXPERIMENT_STATE = "NOT_RUNNING";
+				}
+			}
+			else if(SINGLE_EXPERIMENT_STATE == "NOT_RUNNING")
+			{
+				if(runCount == 0)
+				{
+					$('#addExprSection').attr('id',exprCount);
+					pIDObj = $('#'+exprCount).closest('p');
+					$('<p id="addExprSection"></p>').insertAfter($(pIDObj));
+
+					if(prePostEst == "true")
+					{
+						var exprSectionText = "<table align='center'>";
+						exprSectionText = exprSectionText + "<tr><td align='center' id='exprRun'><button><b>EXP" + exprCount + "</b><br><img src='figures/down_arrow.png' title='Experiment #" + exprCount + "'></button></td>";
+						exprSectionText = exprSectionText + "<td align='center'><h3>Pre Experiment</h3></td>";
+						exprSectionText = exprSectionText + "<td align='center'><h3>During Experiment</h3></td>";
+						exprSectionText = exprSectionText + "<td align='center'><h3>Post Experiment</h3></td>";
+						var i;
+						for(i=1;i<=rounds;i++)
+						{
+							exprSectionText = exprSectionText + "<tr><td align='center'><input type='checkbox' name='runSelect" + exprCount + "' id='R" + i + "' /><br>RUN" + i + "</td>";
+							exprSectionText = exprSectionText + "<td><table>";
+							if(scanMethod == "20MHz_Band")
+								exprSectionText = exprSectionText + "<tr><td id='preExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td>Center Frequency " + centerFreqWI_FI + "MHz</td>";
+							else if(scanMethod == "2.4GHz")
+								exprSectionText = exprSectionText + "<tr><td id='preExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td>Domain <select id='preExprGraphDomain" + i + "'><option value='freq'>Freq</option><option value='time'>Time</option></select></td><td id='preExprFreqCont" + i + "'>Range (MHz) <select id='preExprStartFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select> - <select id='preExprEndFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26' selected='selected'>2480</option></select></td>";
+							exprSectionText = exprSectionText + "<td id='preExprStatus" + i + "' align='center'><b>Scheduled</b></td><td align='right'><img id='preExprStop" + i + "' src='figures/stop.png' title='stop experiment'> <img id ='preExprRefresh" + i + "' src='figures/refresh.png' title='refresh experiment'></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td colspan='5'><div id='preExpr" + exprCount + "_" + i + "' style='width:520px;height:300px;'><textarea style='width:520px;height:300px;' wrap='off'></textarea></div></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td id='preExprScore" + i + "' colspan='5'></td></tr>";
+							exprSectionText = exprSectionText + "</table></td>";
+							exprSectionText = exprSectionText + "<td align='center'><table>";
+							exprSectionText = exprSectionText + "<tr><td id='dueExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td id='exprStatus" + i + "' align='left'><b>Scheduled</b></td><td align='right'>Label <input type='checkbox' id='label" + i + "' checked='checked' /></td><td align='right'><img id='dueExprStop" + i + "' src='figures/stop.png' title='stop experiment'> <img id ='dueExprRefresh" + i + "' src='figures/refresh.png' title='refresh experiment'></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td colspan='4'><div id='dueExpr" + exprCount + "_" + i + "' style='width:520px;height:400px;'><textarea style='width:520px;height:400px;' wrap='off'></textarea></div></td></tr>";
+							exprSectionText = exprSectionText + "</table></td>";
+							exprSectionText = exprSectionText + "<td align='center'><table>";
+							if(scanMethod == "20MHz_Band")
+								exprSectionText = exprSectionText + "<tr><td id='postExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td>Center Frequency " + centerFreqWI_FI + "MHz</td>";
+							else if(scanMethod == "2.4GHz")
+								exprSectionText = exprSectionText + "<tr><td id='postExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td>Domain <select id='postExprGraphDomain" + i + "'><option value='freq'>Freq</option><option value='time'>Time</option></select></td><td id='postExprFreqCont" + i + "'>Range (MHz) <select id='postExprStartFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select> - <select id='postExprEndFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26' selected='selected'>2480</option></select></td>";
+							exprSectionText = exprSectionText + "<td id='postExprStatus" + i + "' align='center'><b>Scheduled</b></td><td align='right'><img id='postExprStop" + i + "' src='figures/stop.png' title='stop experiment'> <img id ='postExprRefresh" + i + "' src='figures/refresh.png' title='refresh experiment'></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td colspan='5'><div id='postExpr" + exprCount + "_" + i + "' style='width:520px;height:300px;'><textarea style='width:520px;height:300px;' wrap='off'></textarea></div></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td id='postExprScore" + i + "' colspan='5'></td></tr>";
+							exprSectionText = exprSectionText + "</table></td></tr>";
+						}
+						exprSectionText = exprSectionText + "<tr><td></td><td align='center'>";
+						// --------------------------------------------------------------------------------- //
+						if(parOptType == 'SSRuC')
+							exprSectionText = exprSectionText + "<table><tr><td id='objParMetName'><b>" + objParMetName + "</b></td><td>=</td><td id='workingVal'><b>" + workingVal + "</b></td></tr></table>";
+						else if(parOptType == 'IVuC')
+							exprSectionText = exprSectionText + "<table><tr><td id='objParMetName'><b>" + objParMetName + "</b></td><td>=</td><td id='workingVal'><b>" + workingVal + "</b></td></tr><tr><td><b>Score</b></td><td>=</td><td id='score" + exprCount + "'></td></tr></table>";
+						// --------------------------------------------------------------------------------- //
+						exprSectionText = exprSectionText + "</td><td align='center' id='corrMat'></td></tr><tr><td colspan='4'><hr /></td></tr>";
+						exprSectionText = exprSectionText + "</table>";
+					}
+					else if(prePostEst == "false")
+					{
+						var exprSectionText = "<table align='center'>";
+						exprSectionText = exprSectionText + "<tr><td align='center' id='exprRun'><button><b>EXP" + exprCount + "</b><br><img src='figures/down_arrow.png' title='Experiment #" + exprCount + "'></button></td>";
+						exprSectionText = exprSectionText + "<td align='center'><h3>During Experiment</h3></td>";
+						var i;
+						for(i=1;i<=rounds;i++)
+						{
+							exprSectionText = exprSectionText + "<tr><td align='center'><input type='checkbox' name='runSelect" + exprCount + "' id='R" + i + "' /><br>RUN" + i + "</td>";
+							exprSectionText = exprSectionText + "<td align='center'><table>";
+							exprSectionText = exprSectionText + "<tr><td id='dueExprView" + i + "'><img src='figures/log.png' name='log' title='switch to graph view'></td><td id='exprStatus" + i + "' align='left'><b>Scheduled</b></td><td align='right'>Label <input type='checkbox' id='label" + i + "' checked='checked' /></td><td align='right'><img id='dueExprStop" + i + "' src='figures/stop.png' title='stop experiment'> <img id ='exprRefresh" + i + "' src='figures/refresh.png' title='refresh experiment'></td></tr>";
+							exprSectionText = exprSectionText + "<tr><td colspan='4'><div id='dueExpr" + exprCount + "_" + i + "' style='width:650px;height:500px;'><textarea style='width:650px;height:500px;' wrap='off'></textarea></div></td></tr>";
+							exprSectionText = exprSectionText + "</table></td></tr>";
+						}
+						exprSectionText = exprSectionText + "<tr><td align='center'>";
+						// --------------------------------------------------------------------------------- //
+						if(parOptType == 'SSRuC')
+							exprSectionText = exprSectionText + "<table><tr><td id='objParMetName'><b>" + objParMetName + "</b></td><td>=</td><td id='workingVal'><b>" + workingVal + "</b></td></tr></table>";
+						else if(parOptType == 'IVuC')
+							exprSectionText = exprSectionText + "<table><tr><td id='objParMetName'><b>" + objParMetName + "</b></td><td>=</td><td id='workingVal'><b>" + workingVal + "</b></td></tr><tr><td><b>Score</b></td><td>=</td><td id='score" + exprCount + "'></td></tr></table>";
+						// --------------------------------------------------------------------------------- //
+						exprSectionText = exprSectionText + "</td><td align='center' id='corrMat'></td></tr><tr><td colspan='2'><hr /></td></tr>";
+						exprSectionText = exprSectionText + "</table>";
+					}
+
+					$(pIDObj).html(exprSectionText);
+
+					preExprIDArray[exprCount-1]=[];	exprIDArray[exprCount-1]=[];	postExprIDArray[exprCount-1]=[];
+					preExprLogFileArray[exprCount-1]=[];	exprLogFileArray[exprCount-1]=[];	postExprLogFileArray[exprCount-1]=[];
+					runCount++;
+				}
+				else
+				{
+					if(prePostEst == "true")
+					{
+						if(PRE_DUE_POST_STATE == "IDLE")
+						{
+							$.ajax
+							({
+								async:false,
+								url:"event_handler.php?event=startPrePostExpr" + "&scanMethod=" + scanMethod,
+								success:function(result)
+								{
+									// PID, exprID, and exprLogFile are the only handlers for controllering the experiment after it is started
+									PID = result.split('|')[0];	exprID = result.split('|')[1];	exprLogFile = result.split('|')[2];
+									preExprIDArray[exprCount-1].push(exprID);
+									preExprLogFileArray[exprCount-1].push(exprLogFile);
+									$(pIDObj).find('#preExprStatus' + runCount).html("<input type='radio' name='statusPre" + exprCount + "_" + runCount + "' id='1'><input type='radio' name='statusPre" + exprCount + "_" + runCount + "' id='2'><input type='radio' name='statusPre" + exprCount + "_" + runCount + "' id='3'>");
+
+									$(pIDObj).on('click','#preExprView' + runCount, {exprCount: exprCount, runCount: runCount}, exprView);
+									$(pIDObj).on('change','#preExprGraphDomain' + runCount, {runCount: runCount}, changeGraphDomain);
+									$(pIDObj).on('click','#preExprStop' + runCount, exprStop);
+									$(pIDObj).on('click','#preExprRefresh' + runCount, prePostExprRefresh);
+
+									SINGLE_EXPERIMENT_STATE = "RUNNING";
+									PRE_DUE_POST_STATE = "PRE_EXPR";
+								}
+							});
+						}
+						else if(PRE_DUE_POST_STATE == "PRE_EXPR")
+						{
+							$.ajax
+							({
+								async:false,
+								url:"event_handler.php?event=startExpr" + "&ED_Name=" + ED_Name,
+								success:function(result)
+								{
+									// PID, exprID, and exprLogFile are the only handlers for controllering the experiment after it is started
+									PID = result.split('|')[0];	exprID = result.split('|')[1];	exprLogFile = result.split('|')[2];
+									exprIDArray[exprCount-1].push(exprID);
+									exprLogFileArray[exprCount-1].push(exprLogFile);
+									$(pIDObj).find('#exprStatus' + runCount).html("<input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='1'><input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='2'><input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='3'>");
+
+									$(pIDObj).on('click','#dueExprView' + runCount, {exprCount: exprCount, runCount: runCount}, exprView);
+									$(pIDObj).on('click','#dueExprStop' + runCount, exprStop);
+									$(pIDObj).on('click','#dueExprRefresh' + runCount, exprRefresh);
+
+									SINGLE_EXPERIMENT_STATE = "RUNNING";
+									PRE_DUE_POST_STATE = "DUE_EXPR";
+								}
+							});
+						}
+						else if(PRE_DUE_POST_STATE == "DUE_EXPR")
+						{
+							$.ajax
+							({
+								async:false,
+								url:"event_handler.php?event=startPrePostExpr" + "&scanMethod=" + scanMethod,
+								success:function(result)
+								{
+									// PID, exprID, and exprLogFile are the only handlers for controllering the experiment after it is started
+									PID = result.split('|')[0];	exprID = result.split('|')[1];	exprLogFile = result.split('|')[2];
+									postExprIDArray[exprCount-1].push(exprID);
+									postExprLogFileArray[exprCount-1].push(exprLogFile);
+									$(pIDObj).find('#postExprStatus' + runCount).html("<input type='radio' name='statusPost" + exprCount + "_" + runCount + "' id='1'><input type='radio' name='statusPost" + exprCount + "_" + runCount + "' id='2'><input type='radio' name='statusPost" + exprCount + "_" + runCount + "' id='3'>");
+
+									$(pIDObj).on('click','#postExprView' + runCount, {exprCount: exprCount, runCount: runCount}, exprView);
+									$(pIDObj).on('change','#postExprGraphDomain' + runCount, {runCount: runCount}, changeGraphDomain);
+									$(pIDObj).on('click','#postExprStop' + runCount, exprStop);
+									$(pIDObj).on('click','#postExprRefresh' + runCount, prePostExprRefresh);
+
+									SINGLE_EXPERIMENT_STATE = "RUNNING";
+									PRE_DUE_POST_STATE = "POST_EXPR";
+								}
+							});
+						}
+					}
+					else if(prePostEst == "false")
+					{
+						$.ajax
+						({
+							async:false,
+							url:"event_handler.php?event=startExpr" + "&ED_Name=" + ED_Name,
+							success:function(result)
+							{
+								// PID, exprID, and exprLogFile are the only handlers for controllering the experiment after it is started
+								PID = result.split('|')[0];	exprID = result.split('|')[1];	exprLogFile = result.split('|')[2];
+
+								exprIDArray[exprCount-1].push(exprID);
+								exprLogFileArray[exprCount-1].push(exprLogFile);
+								$(pIDObj).find('#exprStatus' + runCount).html("<input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='1'><input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='2'><input type='radio' name='statusDue" + exprCount + "_" + runCount + "' id='3'>");
+
+								$(pIDObj).on('click','#dueExprView' + runCount, {exprCount: exprCount, runCount: runCount}, exprView);
+								$(pIDObj).on('click','#dueExprStop' + runCount, exprStop);
+								$(pIDObj).on('click','#exprRefresh' + runCount, exprRefresh);
+							
+								SINGLE_EXPERIMENT_STATE = "RUNNING";
+							}
+						});
+					}
+				}
+			}
+
+			if(OVERALL_EXPERIMENT_STATE != "FINISHED")
+			{
+				totalDuration++;
+				setTimeout(doIteration, 500);		// refresh rate is 500 msec
+			}
+			else
+			{
+				$(document).find("#totalDuration").html("<b>Total experiment duration</b> = " + totalDuration*0.5 + " sec");
+				$(document).find("#saveExpr").html("<button>Save experiment result</button>");
+				if(prePostEst == "false")
+					$(document).on('click','#saveExpr',{ED_Name: ED_Name, exprIDArray: exprIDArray}, saveExpr);
+				else if(prePostEst == "true")
+					$(document).on('click','#saveExpr',{ED_Name: ED_Name, preExprIDArray: preExprIDArray, exprIDArray: exprIDArray, postExprIDArray: postExprIDArray}, saveExpr);
+			}
+
+		}
+
+		function updatePar(ED_Name,objParMetName,value)
+		{
+			$.ajax
+			({
+				async: false,
+				url:"event_handler.php?event=updatePar" + "&ED_Name=" + ED_Name + "&objParMetName=" + objParMetName  + "&value=" + value
+			});
+		}
+
+		function getEnvData(graphDomain, freqBandArray, exprID) 
+		{
+			var envData;
+			var jsonFreqBandArray = JSON.stringify(freqBandArray);
+			$.ajax
+			({
+				async:false,
+				type: "POST",
+				data: {jsonFreqBandArray : jsonFreqBandArray}, 
+				dataType: "xml",
+				cache: false,
+				url:"event_handler.php?event=getEnvData" + "&graphDomain=" + graphDomain + "&exprID=" + encodeURIComponent(exprID),
+				success:function(result)
+				{
+					envData = result;
+				}
+			});
+			return envData;
+		}
+
+		function getExprData(metric,group,table,seq,exprID) 
+		{
+			var data = [];
+			$.ajax
+			({
+				async:false,
+				dataType: "xml",
+				url:"event_handler.php?event=getExprData" + "&metric=" + metric + "&group=" + group + "&table=" + table + "&seq=" + seq + "&exprID=" + encodeURIComponent(exprID),
+				success:function(result)
+				{
+					$(result).find("value").each(function()
+					{
+						data.push([$(this).attr('x'), $(this).attr('y')]);
+					});
+				}
+			});
+			return data;
+		}
+
+		function exprView(event)
+		{
+			var pIDObj = $(this).closest('p');
+			var viewID = $(this).attr('id')
+			var exprCount = event.data.exprCount;
+			var runCount = event.data.runCount;
+
+			if($(this).find('img').attr('name') == "log")
+				$(pIDObj).find('#' + viewID).html("<img src='figures/graph.png' name='graph' title='switch to log file view'>");
+			else if($(this).find('img').attr('name') == "graph")
+			{
+				$(pIDObj).find('#' + viewID).html("<img src='figures/log.png' name='log' title='switch to graph view'>");
+
+				if((viewID == "dueExprView" + runCount) && (prePostEst == "false"))
+					$(pIDObj).find('#dueExpr' + exprCount + "_" + runCount).html("<textarea style='width:650px;height:500px;' wrap='off'></textarea>");
+				else if(viewID == "preExprView" + runCount)
+					$(pIDObj).find('#preExpr' + exprCount + "_" + runCount).html("<textarea style='width:520px;height:300px;' wrap='off'></textarea>");
+				else if((viewID == "dueExprView" + runCount) && (prePostEst == "true"))
+					$(pIDObj).find('#dueExpr' + exprCount + "_" + runCount).html("<textarea style='width:520px;height:400px;' wrap='off'></textarea>");
+				else if(viewID == "postExprView" + runCount)
+					$(pIDObj).find('#postExpr' + exprCount + "_" + runCount).html("<textarea style='width:520px;height:300px;' wrap='off'></textarea>");
+			}
+		}
+
+		function changeGraphDomain(event)
+		{
+			var pIDObj = $(this).closest('p');
+			var runCount = event.data.runCount;
+
+			var prePostType = $(this).attr('id').substring(0, $(this).attr('id').indexOf("ExprGraphDomain"));
+
+			if(prePostType == "pre")
+			{
+				if($(this).val() == "time")
+					$(pIDObj).find('#preExprFreqCont' + runCount).html("Center Frequency (MHz) <select id='preExprcenterFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select>");
+				else if($(this).val() == "freq")
+					$(pIDObj).find('#preExprFreqCont' + runCount).html("Range (MHz) <select id='preExprStartFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select> - <select id='preExprEndFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26' selected='selected'>2480</option></select>");
+			}
+			else if (prePostType == "post")
+			{
+				if($(this).val() == "time")
+					$(pIDObj).find('#postExprFreqCont' + runCount).html("Center Frequency (MHz) <select id='postExprcenterFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select>");
+				else if($(this).val() == "freq")
+					$(pIDObj).find('#postExprFreqCont' + runCount).html("Range (MHz) <select id='postExprStartFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26'>2480</option></select> - <select id='postExprEndFreq'><option value='psd11'>2405</option><option value='psd12'>2410</option><option value='psd13'>2415</option><option value='psd14'>2420</option><option value='psd15'>2425</option><option value='psd16'>2430</option><option value='psd17'>2435</option><option value='psd18'>2440</option><option value='psd19'>2445</option><option value='psd20'>2450</option><option value='psd21'>2455</option><option value='psd22'>2460</option><option value='psd23'>2465</option><option value='psd24'>2470</option><option value='psd25'>2475</option><option value='psd26' selected='selected'>2480</option></select>");
+			}
+		}
+
+		function exprStop(event)
+		{
+			var command = "kill " + PID;
+			$.ajax
+			({
+				async:false,
+				type: "POST",
+				url:"event_handler.php?event=execCommand",
+				data: {command : command}
+			});
+		}
+
+		function executeSQL(event)
+		{
+			var pIDObj = $(this).closest('p');
+			var exprNO = parseInt($(pIDObj).attr('id'));
+			var runNo = $(event.target).attr('id');
+			runNo = parseInt(runNo.substring(runNo.length-1, runNo.length));
+			if($(pIDObj).find('#dueExpr'+exprNO+"_"+runNo).find('textarea').length == 1)
+			{
+				var sqlCommand = $(pIDObj).find('#dueExpr'+exprNO+"_"+runNo).find('textarea').val();
+				var exprID = event.data.exprID;
+
+				$.ajax
+				({
+					async:false,
+					type: "POST",
+					url:"event_handler.php?event=executeSQL" + "&exprID=" + encodeURIComponent(exprID),
+					data: {sqlCommand : sqlCommand},
+					success:function(result)
+					{
+						$(pIDObj).find('#dueExpr'+exprNO+"_"+runNo).find('textarea').val(result);
+					}
+				});
+			}
+			else
+				alert("Please switch to log file view");
+		}
+
+		function prePostExprRefresh(event)
+		{
+			var pIDObj = $(this).closest('p');
+			var exprNO = parseInt($(pIDObj).attr('id'));
+			var runNo = $(event.target).attr('id');
+			runNo = parseInt(runNo.substring(runNo.length-1, runNo.length));
+
+			var prePostType = $(this).attr('id').substring(0, $(this).attr('id').indexOf("ExprRefresh"));
+			var freqBandArray = [];
+			if(prePostType == "pre")
+			{
+				var prePostView = '#preExprView' + runNo;
+				var prePostExprID = encodeURIComponent(preExprIDArray[exprNO-1][runNo-1]);
+				viewHolder = "#preExpr" + exprNO + "_" + runNo;
+				var perPostExprScoreCont = "#preExprScore" + runNo;
+				var exprLogFile = encodeURIComponent(preExprLogFileArray[exprNO-1][runNo-1]);
+				if(scanMethod == "20MHz_Band")
+				{
+					var graphDomain = "time";
+					freqBandArray.push("psd");
+				}
+				else if(scanMethod == "2.4GHz")
+				{
+					var graphDomain = $(pIDObj).find('#preExprGraphDomain' + runNo).val();
+					if(graphDomain == "time")
+					{
+						freqBandArray.push($(pIDObj).find('#preExprFreqCont' + runNo).find('#preExprcenterFreq').val());
+					}
+					else if(graphDomain == "freq")
+					{
+						var freqBandStart = $(pIDObj).find('#preExprFreqCont' + runNo).find('#preExprStartFreq').val();
+						freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+						var freqBandEnd = $(pIDObj).find('#preExprFreqCont' + runNo).find('#preExprEndFreq').val();
+						freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+						for(var i=freqBandStart; i<=freqBandEnd; i++)
+							freqBandArray.push('psd' + i);
+					}
+				}
+				var prePostExprScore = calcPrePostScore(freqBandArray,preExprIDArray[exprNO-1][runNo-1]);
+			}
+			else if(prePostType == "post")
+			{
+				var prePostView = '#postExprView' + runNo;
+				var prePostExprID = encodeURIComponent(postExprIDArray[exprNO-1][runNo-1]);
+				viewHolder = "#postExpr" + exprNO + "_" + runNo;
+				var perPostExprScoreCont = "#postExprScore" + runNo;
+				var exprLogFile = encodeURIComponent(postExprLogFileArray[exprNO-1][runNo-1]);
+				if(scanMethod == "20MHz_Band")
+				{
+					var graphDomain = "time";
+					freqBandArray.push("psd");
+				}
+				else if(scanMethod == "2.4GHz")
+				{
+					var graphDomain = $(pIDObj).find('#postExprGraphDomain' + runNo).val();
+					if(graphDomain == "time")
+					{
+						freqBandArray.push($(pIDObj).find('#postExprFreqCont' + runNo).find('#postExprcenterFreq').val());
+					}
+					else if(graphDomain == "freq")
+					{
+						var freqBandStart = $(pIDObj).find('#postExprFreqCont' + runNo).find('#postExprStartFreq').val();
+						freqBandStart = parseInt(freqBandStart.substring(3,freqBandStart.length));
+
+						var freqBandEnd = $(pIDObj).find('#postExprFreqCont' + runNo).find('#postExprEndFreq').val();
+						freqBandEnd = parseInt(freqBandEnd.substring(3,freqBandEnd.length));
+
+						for(var i=freqBandStart; i<=freqBandEnd; i++)
+							freqBandArray.push('psd' + i);
+					}
+				}
+				var prePostExprScore = calcPrePostScore(freqBandArray,postExprIDArray[exprNO-1][runNo-1]);
+			}
+
+			if($(pIDObj).find(prePostView).find('img').attr('name') == "graph")
+			{
+				var options = { series: { lines: { show: true }, shadowSize: 0 }, yaxis: {min: 0} };
+				var jsonFreqBandArray = JSON.stringify(freqBandArray);
+				$.ajax
+				({
+					async:false,
+					type: "POST",
+					data: {jsonFreqBandArray : jsonFreqBandArray},
+					dataType: "xml",
+					cache: false,
+					url:"event_handler.php?event=getEnvData" + "&graphDomain=" + graphDomain + "&exprID=" + prePostExprID,
+					success:function(result)
+					{
+						var USRP62 = [];	var USRP65 = [];	var USRP69 = [];	var USRP75 = [];	var USRP81 = [];	var USRP89 = [];
+						$(result).find("value").each(function()
+						{
+							if($(this).attr('usrpid') == "62")	USRP62.push([$(this).attr('x'), $(this).attr('y')]);
+							if($(this).attr('usrpid') == "65")	USRP65.push([$(this).attr('x'), $(this).attr('y')]);
+							if($(this).attr('usrpid') == "69")	USRP69.push([$(this).attr('x'), $(this).attr('y')]);
+							if($(this).attr('usrpid') == "75")	USRP75.push([$(this).attr('x'), $(this).attr('y')]);
+							if($(this).attr('usrpid') == "81")	USRP81.push([$(this).attr('x'), $(this).attr('y')]);
+							if($(this).attr('usrpid') == "89")	USRP89.push([$(this).attr('x'), $(this).attr('y')]);
+						});
+						$.plot(viewHolder, [ {label: "USRP62 (dBm)", data: USRP62},	{label: "USRP65 (dBm)", data: USRP65},	{label: "USRP69 (dBm)", data: USRP69},	{label: "USRP75 (dBm)", data: USRP75},	{label: "USRP81 (dBm)", data: USRP81},	{label: "USRP89 (dBm)", data: USRP89} ], { series: { lines: { show: true }, shadowSize: 0 } });
+					}
+				});
+			}
+			else if($(pIDObj).find(prePostView).find('img').attr('name') == "log")
+			{
+				$.ajax
+				({
+					async:false,
+					url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + exprLogFile,
+					success:function(result)
+					{
+						$(pIDObj).find(viewHolder).find('textarea').val(result);
+					}
+				});
+			}
+			$(pIDObj).find(perPostExprScoreCont).html(prePostExprScore);
+		}
+
+		function exprRefresh(event)
+		{
+			var pIDObj = $(this).closest('p');
+			var exprNO = parseInt($(pIDObj).attr('id'));
+			var runNo = $(event.target).attr('id');
+			runNo = parseInt(runNo.substring(runNo.length-1, runNo.length));
+
+			viewHolder = "#dueExpr" + exprNO + "_" + runNo;
+			if($(pIDObj).find('#dueExprView' + runNo).find('img').attr('name') == "graph")
+			{
+				var data = [];
+				var label = $(pIDObj).find('#label'+runNo).attr('checked')?true:false;
+				if(label == true)
+					for (var i=0;i<perVisMetName.length;i++)
+						data.push({label: perVisMetGroup[i]+"_"+perVisMetName[i]+" ("+perVisMetUnit[i]+")", data: getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprIDArray[exprNO-1][runNo-1]) });
+				else if(label == false)
+					for (var i=0;i<perVisMetName.length;i++)
+						data.push(getExprData(perVisMetName[i],perVisMetGroup[i],perVisMetTable[i],perVisMetSeq[i],exprIDArray[exprNO-1][runNo-1]));
+				$.plot(viewHolder, data, options);
+			}
+			else if($(pIDObj).find('#dueExprView' + runNo).find('img').attr('name') == "log")
+			{
+				$.ajax
+				({
+					async:false,
+					url:"event_handler.php?event=readLogFile" + "&exprLogFile=" + encodeURIComponent(exprLogFileArray[exprNO-1][runNo-1]),
+					success:function(result)
+					{
+						$(pIDObj).find(viewHolder).find('textarea').val(result);
+					}
+				});
+			}
+		}
+
+		function calcPrePostScore(freqBandArray,exprID) 
+		{
+			var prePostScore;
+			var jsonFreqBandArray = JSON.stringify(freqBandArray);
+			$.ajax
+			({
+				async:false,
+				type: "POST",
+				data: {jsonFreqBandArray : jsonFreqBandArray},
+				url:"event_handler.php?event=calcPrePostScore" + "&exprID=" + encodeURIComponent(exprID),
+				success:function(result)
+				{
+					prePostScore = result;
+				}
+			});
+			return prePostScore;
+		}
+
+		function saveExpr(event)
+		{
+			var ED_Name = event.data.ED_Name;
+
+			var selectedExprArray = [];
+			$('p').each(function()
+			{
+				var pID = $(this).attr('id');
+				if(pID != "addExprSection")
+				{
+					var exprCount = pID;
+					var objParMetName = $(this).find('#objParMetName').text();
+					var workingVal = $(this).find('#workingVal').text();
+					$(this).find("input:checkbox").each(function()
+					{
+						if($(this).attr('id').substring(0,1) == "R" && $(this).attr('checked') == 'checked')
+						{
+							var runNo = $(this).attr('id');
+							runNo = runNo.substring(1, runNo.length);
+							selectedExprArray.push(exprCount + "|" + runNo + "|" + objParMetName + "|" + workingVal);
+						}
+					});
+				}
+			});
+
+			if(prePostEst == "false")
+			{
+				var exprIDArray = event.data.exprIDArray;
+				var baseName = prompt("Please enter filename",randomString());
+				if(baseName != null)
+				{
+					var jsonExprIDArray = JSON.stringify(exprIDArray);
+					var jsonSelectedExprArray = JSON.stringify(selectedExprArray);
+					$.ajax
+					({
+						type: "POST",
+						url: "event_handler.php?event=saveExpr" + "&ED_Name=" + ED_Name + "&baseName=" + baseName + "&intDet=OFF",
+						data: {jsonExprIDArray : jsonExprIDArray, jsonSelectedExprArray : jsonSelectedExprArray}, 
+						cache: false,
+						success: function(result)
+						{
+							$("td:#exprSaved").html(result);
+						}
+					});
+				}
+			}
+			else if(prePostEst == "true")
+			{
+				var preExprIDArray = event.data.preExprIDArray;
+				var exprIDArray = event.data.exprIDArray;
+				var postExprIDArray = event.data.postExprIDArray;
+				var baseName = prompt("Please enter filename",randomString());
+				if(baseName != null)
+				{
+					var jsonPreExprIDArray = JSON.stringify(preExprIDArray);
+					var jsonExprIDArray = JSON.stringify(exprIDArray);
+					var jsonPostExprIDArray = JSON.stringify(postExprIDArray);
+					var jsonSelectedExprArray = JSON.stringify(selectedExprArray);
+					$.ajax
+					({
+						type: "POST",
+						url: "event_handler.php?event=saveExpr" + "&ED_Name=" + ED_Name + "&baseName=" + baseName + "&intDet=ON",
+						data: {jsonPreExprIDArray : jsonPreExprIDArray, jsonExprIDArray : jsonExprIDArray, jsonPostExprIDArray : jsonPostExprIDArray, jsonSelectedExprArray : jsonSelectedExprArray}, 
+						cache: false,
+						success: function(result)
+						{
+							$("td:#exprSaved").html(result);
+						}
+					});
+				}
+			}
+		}
+
+		function freqToChannel(centerFreqWI_FI)
+		{
+			switch(centerFreqWI_FI)
+			{
+				case "2412":	return "1";	break;
+				case "2417":	return "2";	break;
+				case "2422":	return "3";	break;
+				case "2427":	return "4";	break;
+				case "2432":	return "5";	break;
+				case "2437":	return "6";	break;
+				case "2442":	return "7";	break;
+				case "2447":	return "8";	break;
+				case "2452":	return "9";	break;
+				case "2457":	return "10";	break;
+				case "2462":	return "11";	break;
+				case "2467":	return "12";	break;
+				case "2472":	return "13";	break;
+				case "2484":	return "14";	break;
+				case "5180":	return "36";	break;
+				case "5200":	return "40";	break;
+				case "5220":	return "44";	break;
+				case "5240":	return "48";	break;
+				case "5260":	return "52";	break;
+				case "5280":	return "56";	break;
+				case "5300":	return "60";	break;
+				case "5320":	return "64";	break;
+				case "5500":	return "100";	break;
+				case "5520":	return "104";	break;
+				case "5540":	return "108";	break;
+				case "5560":	return "112";	break;
+				case "5580":	return "116";	break;
+				case "5600":	return "120";	break;
+				case "5620":	return "124";	break;
+				case "5640":	return "128";	break;
+				case "5660":	return "132";	break;
+				case "5680":	return "136";	break;
+				case "5700":	return "140";	break;
+				case "5745":	return "149";	break;
+				case "5765":	return "153";	break;
+				case "5785":	return "157";	break;
+				case "5805":	return "161";	break;
+				case "5825":	return "165";	break;
+				default:	return "40";
+			}
+		}
+		
+		// function to create a random string
+		function randomString()
+		{
+			var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+			var string_length = 8;
+			var randomstring = '';
+			for (var i=0; i<string_length; i++) 
+			{
+				var rnum = Math.floor(Math.random() * chars.length);
+				randomstring += chars.substring(rnum,rnum+1);
+			}
+			return randomstring;
+		}
+	});
+	</script>
+</head>
+<body>
+	<h2 align="center">Experimentation Section</h2>
+	<p id="addExprSection"></p>
+	<table><tr><td id="totalDuration"></td></tr></table>
+	<table><tr><td id="saveExpr"></td><td id="exprSaved"></td></tr></table>
+</body>

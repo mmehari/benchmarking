@@ -1,0 +1,119 @@
+
+ INFO NodeHandler: OMF Experiment Controller 5.3 (git 4c44bbe)
+ INFO NodeHandler: Slice ID: default_slice (default)
+ INFO NodeHandler: Experiment ID: default_slice-2012-10-31t14.43.42+01.00
+ INFO NodeHandler: Message authentication is disabled
+ INFO NodeHandler: Web interface available at: http://10.11.31.22:4003
+ INFO Experiment: load system:exp:stdlib
+ INFO property.resetDelay: value = 210 (Fixnum)
+ INFO property.resetTries: value = 1 (Fixnum)
+ INFO Experiment: load system:exp:eventlib
+ INFO Experiment: load detectZigbeeChannel.rb
+ INFO property.SENSINGTIME: value = 30 (Fixnum)
+ INFO Topology: Loading topology 'omf.ibbt.open.server4'.
+ INFO Topology: Loading topology 'omf.ibbt.open.server4'.
+ INFO Topology: Loading topology 'omf.ibbt.open.server6'.
+ INFO Topology: Loading topology 'omf.ibbt.open.server6'.
+ INFO Experiment: Switching ON resources which are OFF
+ INFO ALL_UP_AND_INSTALLED: Event triggered. Starting the associated tasks.
+ INFO exp: configuring interfaces for USRP sensing engines..
+ INFO exp: start up sensing engines
+ INFO exp: Request from Experiment Script: Wait for 1s....
+ INFO exp: Number of seconds gone by: 0.59749
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 1.678292
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 2.746336
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 3.814346
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 4.8828
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 5.951219
+server4	1351690184707243	65	-69	-68	-69	-77	-68	-62	-71	-86	-91	-91	-76	-74	-71	-78	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 7.019586
+server4	1351690712121154	65	-70	-69	-69	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-65	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 8.099019
+server4	1351690712121154	65	-70	-69	-69	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-65	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 9.167429
+server4	1351690712121154	65	-70	-69	-69	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-65	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 10.235846
+server4	1351690712121154	65	-70	-69	-69	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-65	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 11.3036
+server4	1351690715901791	65	-70	-69	-70	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-64	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 12.383084
+server4	1351690715901791	65	-70	-69	-70	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-64	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 13.451093
+server4	1351690715901791	65	-70	-69	-70	-83	-88	-87	-64	-65	-66	-64	-69	-60	-63	-64	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 14.518893
+server4	1351690719712420	65	-70	-69	-70	-83	-79	-89	-75	-68	-74	-82	-70	-61	-63	-63	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 15.598149
+server4	1351690719712420	65	-70	-69	-70	-83	-79	-89	-75	-68	-74	-82	-70	-61	-63	-63	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 16.67734
+server4	1351690719712420	65	-70	-69	-70	-83	-79	-89	-75	-68	-74	-82	-70	-61	-63	-63	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 17.745345
+server4	1351690719712420	65	-70	-69	-70	-83	-79	-89	-75	-68	-74	-82	-70	-61	-63	-63	-89	-89
+-89 is at channel 26
+ INFO exp: Number of seconds gone by: 18.813374
+server4	1351690723473361	65	-73	-72	-73	-86	-89	-90	-78	-71	-71	-85	-76	-62	-66	-72	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 19.892197
+server4	1351690723473361	65	-73	-72	-73	-86	-89	-90	-78	-71	-71	-85	-76	-62	-66	-72	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 20.960305
+server4	1351690723473361	65	-73	-72	-73	-86	-89	-90	-78	-71	-71	-85	-76	-62	-66	-72	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 22.028495
+server4	1351690727274604	65	-87	-87	-86	-88	-89	-89	-78	-72	-91	-91	-76	-74	-65	-66	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 23.107984
+server4	1351690727274604	65	-87	-87	-86	-88	-89	-89	-78	-72	-91	-91	-76	-74	-65	-66	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 24.187271
+server4	1351690727274604	65	-87	-87	-86	-88	-89	-89	-78	-72	-91	-91	-76	-74	-65	-66	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 25.255762
+server4	1351690727274604	65	-87	-87	-86	-88	-89	-89	-78	-72	-91	-91	-76	-74	-65	-66	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 26.324203
+server4	1351690731082814	65	-87	-87	-88	-88	-89	-90	-77	-71	-71	-84	-75	-61	-67	-73	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 27.402745
+server4	1351690731082814	65	-87	-87	-88	-88	-89	-90	-77	-71	-71	-84	-75	-61	-67	-73	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 28.470792
+server4	1351690731082814	65	-87	-87	-88	-88	-89	-90	-77	-71	-71	-84	-75	-61	-67	-73	-90	-89
+-90 is at channel 25
+ INFO exp: Number of seconds gone by: 29.541534
+server4	1351690734877641	65	-71	-70	-70	-85	-89	-89	-78	-71	-89	-91	-76	-73	-75	-75	-90	-89
+-91 is at channel 20
+ INFO exp: Number of seconds gone by: 30.573042
+server4	1351690734877641	65	-71	-70	-70	-85	-89	-89	-78	-71	-89	-91	-76	-73	-75	-75	-90	-89
+-91 is at channel 20
+ INFO SE_UPDATE: Event triggered. Starting the associated tasks.
+ INFO exp:  
+ INFO exp: Sensing time is up !!
+ INFO exp:  
+ INFO EXPERIMENT_DONE: Event triggered. Starting the associated tasks.
+ INFO exp: Experiment has been finalized
+ INFO NodeHandler: 
+ INFO NodeHandler: Shutting down experiment, please wait...
+ INFO NodeHandler: 
+ INFO run: Experiment default_slice-2012-10-31t14.43.42+01.00 finished after 0:40
+

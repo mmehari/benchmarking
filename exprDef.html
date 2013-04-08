@@ -1,0 +1,84 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>CREW benchmarking framework</title>
+	<link rel="shortcut icon" href="figures/CREW_favicon.ico" type="image/x-icon">
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.js"></script>
+	<script type="text/javascript" charset="utf-8" src="jquery_script/jquery.form.js"></script>
+	<script type="text/javascript">
+	
+	$(document).ready(function()
+	{		
+		$(this).find('#configForm').ajaxForm
+		({
+			dataType: "xml",
+			success: function(objExprConfig)
+			{
+				strXML="";	configText = objToStrXML($(objExprConfig).find("experimentDescription"));
+			
+				$(document).find("#configStatus").html("<a id='startConfig' href='#'>Configure</a>");
+				$(document).on('click','#startConfig',{configText: configText}, startConfig);
+			}
+		});
+		$(this).on('click','#newConfig', newConfig);
+	});
+
+	function startConfig(event)
+	{
+		window.name = event.data.configText;
+		window.location = "exprAbs.html";
+	}
+
+	function newConfig(event)
+	{
+		window.name = "<experimentDescription><experimentAbstract></experimentAbstract><appConfiguration></appConfiguration><nodeConfiguration></nodeConfiguration><TLConfiguration></TLConfiguration></experimentDescription>";
+		window.location = "exprAbs.html";
+	}
+
+	// function to convert XML DOM object to string representation
+	function objToStrXML(obj)
+	{
+		strXML = strXML + "<" + $(obj)[0].tagName;
+		$(obj.attributes).each(function()
+		{
+			strXML = strXML + ' ' + this.nodeName + '="' + this.nodeValue + '"';
+		});
+		strXML = strXML + ">";
+	
+		if($(obj).children().length == "0")
+			strXML = strXML + $(obj).text();
+		else
+			$(obj).children().each(function()
+			{
+				objToStrXML(this);
+			});
+	
+		strXML = strXML + "</" + $(obj)[0].tagName + ">";
+
+		return strXML;		
+	}
+	</script>
+</head>
+<body>
+	<h3 align="center">Experiment Definition Tool </h3>
+	<table align="center">
+	<tr>
+		<td style='border:1px solid black;' align='center'><a id="newConfig" href="#">Start New Configuration</a></td>
+	</tr>
+	<tr>
+		<td style='border:1px solid black;' align='center'>
+			<h4>Load/Configure Experiment</h4>
+			<form enctype="multipart/form-data" id="configForm" action="event_handler.php" method="POST">
+				<table align='left'>
+					<tr>
+						<td><input type="file" name="configFile" accept="text/xml"/></td>
+						<td><input type="submit" value="Load"/></td>
+						<td id="configStatus"></td>
+					</tr>
+				</table>
+			</form>
+		</td>
+	</tr>
+	</table>
+</body>
+</html>
